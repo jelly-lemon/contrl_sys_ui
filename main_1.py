@@ -13,18 +13,18 @@ import util
 class DataCollector():
     def __init__(self):
         n = 0
-        self.ser = serial.Serial("COM3", 9600, timeout=5)  # 开启com3口，波特率，超时
-        self.ser.flushInput()  # 清空输入缓存（向控制器输入）
+        #self.ser = serial.Serial("COM3", 9600, timeout=5)  # 开启com3口，波特率，超时
+        #self.ser.flushInput()  # 清空输入缓存（向控制器输入）
 
     def query_data(self) -> dict:
         # 向控制器发送数据
-        self.ser.write(bytes.fromhex("010300000001840A"))
-
-        time.sleep(1)  # 程序休眠 1 秒，等待控制器返回数据
-        num = self.ser.inWaiting() # 返回接收缓存字节数
-        if num:
-            data = self.ser.read(num)
-            print(data.hex())
+        # self.ser.write(bytes.fromhex("010300000001840A"))
+        #
+        # time.sleep(1)  # 程序休眠 1 秒，等待控制器返回数据
+        # num = self.ser.inWaiting() # 返回接收缓存字节数
+        # if num:
+        #     data = self.ser.read(num)
+        #     print(data.hex())
 
         return {}
 
@@ -63,6 +63,9 @@ class MainWindow():
         # 分离器添加控件
         self.splitter.addWidget(self.ui.table_1)
         self.splitter.addWidget(self.ui.output_edit)
+        # 设置窗口比例
+        self.splitter.setStretchFactor(0, 8)
+        self.splitter.setStretchFactor(1, 2)
 
     def init_ouput_edit(self):
         """
