@@ -8,33 +8,7 @@ import serial
 
 import math
 import util
-
-
-class DataCollector():
-    def __init__(self):
-        n = 0
-        self.ser = serial.Serial("COM3", 9600, timeout=5)  # 开启com3口，波特率，超时
-        self.ser.flushInput()  # 清空输入缓存（向控制器输入）
-
-    def query_data(self) -> dict:
-        # 向控制器发送数据
-        self.ser.write(bytes.fromhex("010300000001840A"))
-
-        time.sleep(1)  # 程序休眠 1 秒，等待控制器返回数据
-        num = self.ser.inWaiting() # 返回接收缓存字节数
-        if num:
-            data = self.ser.read(num)
-            print(data.hex())
-
-        return {}
-
-    def send_instruction(self):
-        return
-
-    def get_machine_num(self) -> int:
-        n_machine = 93
-
-        return n_machine
+from DataCollector import DataCollector
 
 
 class MainWindow():
@@ -53,7 +27,7 @@ class MainWindow():
         # 初始化组件顺序，不可打乱
         self.init_splitter()
         self.init_ouput_edit()
-        self.init_table(self.data_collector.get_machine_num())
+        self.init_table(self.data_collector.machine_num())
 
 
     def init_splitter(self):
@@ -63,6 +37,9 @@ class MainWindow():
         # 分离器添加控件
         self.splitter.addWidget(self.ui.table_1)
         self.splitter.addWidget(self.ui.output_edit)
+        # 设置窗口比例
+        self.splitter.setStretchFactor(0, 8)
+        self.splitter.setStretchFactor(1, 2)
 
     def init_ouput_edit(self):
         """
@@ -144,11 +121,11 @@ class MainWindow():
         data = self.data_collector.query_data()
         if data == {}:
             # 假数据
-            for i in range(self.data_collector.get_machine_num()):
+            for i in range(self.data_collector.machine_num()):
                 data['%d' % (i + 1)] = ('故障代码' + str(i+1), '控制代码' + str(i+1),
                                         '锁状态' + str(i+1), '实时角度' + str(i+1))
 
-        for machine_number in range(self.data_collector.get_machine_num()):
+        for machine_number in range(self.data_collector.machine_num()):
             i, j = self.get_row_col_at(machine_number + 1)
             item0 = QTableWidgetItem(data['%d' % (machine_number + 1)][0])
             item1 = QTableWidgetItem(data['%d' % (machine_number + 1)][1])
