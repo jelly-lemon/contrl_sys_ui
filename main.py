@@ -25,21 +25,42 @@ class MainWindow():
         self.ui.setWindowTitle("监控界面")
 
         # 初始化组件顺序，不可打乱
+        #self.ui.input_layout.setSpacing(0)
+
+
+
         self.init_splitter()
         self.init_ouput_edit()
         self.init_table(self.data_collector.machine_num())
+        self.init_combobox()
 
+    def init_combobox(self):
+        # 扫描端口
+        port_list = util.get_port_list()
+        self.ui.box_com_port.addItems(port_list)
+        if len(port_list) > 0:
+            self.append_info("共扫描到 %d 个串口设备：%s" % (len(port_list), port_list))
+        else:
+            self.append_info("未检测到任何串口设备")
 
     def init_splitter(self):
+
         # 新建一个分离器，垂直分离
-        self.splitter = QSplitter(Qt.Vertical)
-        self.ui.setCentralWidget(self.splitter)  # 设置分离器为中心控件
+        self.main_splitter = QSplitter(Qt.Vertical)
+
         # 分离器添加控件
-        self.splitter.addWidget(self.ui.table_1)
-        self.splitter.addWidget(self.ui.output_edit)
+        self.main_splitter.addWidget(self.ui.table_1)
+        self.main_splitter.addWidget(self.ui.output_edit)
+
+
         # 设置窗口比例
-        self.splitter.setStretchFactor(0, 8)
-        self.splitter.setStretchFactor(1, 2)
+        self.main_splitter.setStretchFactor(0, 8)
+        self.main_splitter.setStretchFactor(1, 2)
+
+        # self.main_splitter.show()   # 这样会单独跑出来一个窗口
+
+        # 把这个 splitter 放在一个布局里才能显示出来
+        self.ui.data_layout.addWidget(self.main_splitter)
 
     def init_ouput_edit(self):
         """
@@ -157,7 +178,7 @@ class MainWindow():
 
 
 
-        self.ui.output_edit.append(util.get_time() + " 数据读取完成！")
+        self.append_info("数据读取完成！")
 
         # n_row = self.ui.table_1.rowCount()
         #

@@ -1,5 +1,7 @@
 import datetime
 
+from serial.tools import list_ports
+
 
 def get_time() -> str:
     """
@@ -9,6 +11,23 @@ def get_time() -> str:
     now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return now_time
 
+def get_port_list() -> list:
+
+    port_name_list = list()
+    # 获取端口列表，列表中为 ListPortInfo 对象
+    port_list = list(list_ports.comports())
+
+    num = len(port_list)
+
+    if num > 0:
+        for i in range(num):
+            # 将 ListPortInfo 对象转化为 list
+            port_name = list(port_list[i])
+            port_name_list.append(port_name[0])
+
+    return port_name_list
+
+
 
 def get_crc16(str: str) -> str:
     """
@@ -16,7 +35,7 @@ def get_crc16(str: str) -> str:
     :param str:十六进制字符串
     :return:带了 CRC 校验码的字符串
     """
-    str = str.strip().upper()
+    str = str.replace(" ","").upper()   # 去除所有空格，转为大写
     data = bytearray.fromhex(str)
     crc = 0xFFFF
     for pos in data:
@@ -40,7 +59,7 @@ def is_crc16(str: str) -> bool:
     :param str: 接收到的数据，带 CRC16 校验码
     :return: 如果正确返回 True，否则返回 False
     """
-    str = str.strip().upper()
+    str = str.replace(" ","").upper()
     print("接收数据：" + str)
     print("校验数据：" + get_crc16(str[:-4]))
 
