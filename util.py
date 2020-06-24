@@ -60,8 +60,8 @@ def is_crc16(str: str) -> bool:
     :return: 如果正确返回 True，否则返回 False
     """
     str = str.replace(" ","").upper()
-    print("接收数据：" + str)
-    print("校验数据：" + get_crc16(str[:-4]))
+    # print("接收数据：" + str)
+    # print("校验数据：" + get_crc16(str[:-4]))
 
     if str == get_crc16(str[:-4]):
         return True

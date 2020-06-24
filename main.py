@@ -1,22 +1,29 @@
 import time
+from threading import Timer
 
 from PySide2.QtWidgets import QApplication, QMessageBox, QHeaderView, QTableWidgetItem, QSplitter, QMainWindow
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import Qt
+from PySide2.QtCore import Slot, Signal, SignalInstance, QObject, SIGNAL, QThread
 
 import serial
 
 import math
+
 import util
 from DataCollector import DataCollector
 
 
 class MainWindow():
+
     def __init__(self):
         # super().__init__()
+        self.data_collector = None
 
-        # 一些其它对象
-        self.data_collector = DataCollector()
+        self.timer = None
+
+
+
 
         # 加载 UI 文件，self.ui 就是应用中 MainWindow 这个对象
         self.ui = QUiLoader().load('./QtDesigner/main_window.ui')
@@ -25,14 +32,17 @@ class MainWindow():
         self.ui.setWindowTitle("监控界面")
 
         # 初始化组件顺序，不可打乱
-        #self.ui.input_layout.setSpacing(0)
+        # self.ui.input_layout.setSpacing(0)
 
-
+        self.isPolling = False
 
         self.init_splitter()
         self.init_ouput_edit()
-        self.init_table(self.data_collector.machine_num())
+
         self.init_combobox()
+
+        # button 点击事件
+        self.ui.btn_submit.clicked.connect(self.submit_poling)
 
     def init_combobox(self):
         # 扫描端口
@@ -52,7 +62,6 @@ class MainWindow():
         self.main_splitter.addWidget(self.ui.table_1)
         self.main_splitter.addWidget(self.ui.output_edit)
 
-
         # 设置窗口比例
         self.main_splitter.setStretchFactor(0, 8)
         self.main_splitter.setStretchFactor(1, 2)
@@ -68,17 +77,20 @@ class MainWindow():
         :return: 无
         """
         self.ui.output_edit.setReadOnly(True)  # 禁止编辑
-        self.ui.output_edit.setPlainText(util.get_time() + " 界面初始化完成！")  # 显示文本
+        # self.ui.output_edit.setPlainText(util.get_time() + " 界面初始化完成！")  # 显示文本
 
     def append_info(self, info: str):
         self.ui.output_edit.append(util.get_time() + " " + info)  # 显示文本
 
-    def init_table(self, n: int):
+    def init_table(self):
         """
         初始化表格
         :param n:机器数量
         :return:无
         """
+
+        n = self.data_collector.machine_num()
+
         # 隐藏默认垂直表头
         self.ui.table_1.verticalHeader().setVisible(False)  # 隐藏垂直表头
 
@@ -117,80 +129,130 @@ class MainWindow():
         # 不是这么回事，先留着
         # self.ui.table_1.repaint()
 
+        # self.update_table()
+
+    def submit_poling(self):
+        """
+        提交轮询
+        :return:无
+        """
+        # 获取控件的值
+        com_port = self.ui.box_com_port.currentText()
+        collector_addr = self.ui.edit_addr.text()
+
+        if self.data_collector != None:
+            self.data_collector.close()
+
+        self.data_collector = DataCollector(com_port, collector_addr)
+
+        # 初始化表格
+        self.ui.table_1.clear() # 清除表格中所有内容
+        self.init_table()   # 初始化表格
+
+        # 更新表格
+        #self.update_table()
+
+        if not self.isPolling:
+            # 点击“开始轮询”，则按钮立即显示“停止轮询”
+            self.ui.btn_submit.setText("停止轮询")
+            # 下拉框、输入框都不可修改
+            self.ui.box_com_port.setEditable(False)
+            self.ui.edit_addr.setReadOnly(True)
+            # 开始轮询
+            self.timer = Timer(0, self.poling)
+            self.timer.start()
+
+            self.isPolling = True
+
+        else:
+            # 点击“停止轮询”，则按钮立即显示“开始轮询”
+            self.ui.btn_submit.setText("开始轮询")
+            # 下拉框、输入框恢复
+            self.ui.box_com_port.setEditable(True)
+            self.ui.edit_addr.setReadOnly(True)
+            # 停止轮询
+            self.timer.cancel()
+
+            self.isPolling = False
 
 
-        self.show_data()
+    def poling(self):
+        """
+        轮询查询
+        :return:无
+        """
+        self.timer = Timer(30, self.poling)
+        self.timer.start()
 
-        # 对表格单元格进行监听，单元格编辑完成后进入该事件
-        # 该怎么做呢
-        self.ui.table_1.itemChanged.connect(self.submit_control_code)
+        #self.update_table()
+
+
+        data = self.data_collector.query_data() # 请求数据，放在子线程中完成
+
+        self.update_table(data)
+
+
+
+
 
     def submit_control_code(self, item):
         i = item.row()
         j = item.column()
-        self.append_info("发送" + self.ui.table_1.item(i, j-1).text() + "：" + item.text())
-
-        #print("(%d,%d):%s" % (i, j, item.text()))
+        self.append_info("发送" + self.ui.table_1.item(i, j - 1).text() + "：" + item.text())
 
 
-    def show_data(self):
+    # 谁来调用？
+    @Slot(str)
+    def update_table(self, data: dict):
         """
         {'1': ('故障代码', '控制代码', '锁状态', '实时角度'), ...}
+        只允许更新表格，其余的耗时操作不要放在这
         :param data:
         :return:
         """
-        data = self.data_collector.query_data()
-        if data == {}:
+
+
+        if data == {} or data is None:
             # 假数据
             for i in range(self.data_collector.machine_num()):
-                data['%d' % (i + 1)] = ('故障代码' + str(i+1), '控制代码' + str(i+1),
-                                        '锁状态' + str(i+1), '实时角度' + str(i+1))
+                data['%d' % (i + 1)] = ('故障代码' + str(i + 1), '控制代码' + str(i + 1),
+                                        '锁状态' + str(i + 1), '实时角度' + str(i + 1))
 
-        for machine_number in range(self.data_collector.machine_num()):
-            i, j = self.get_row_col_at(machine_number + 1)
-            item0 = QTableWidgetItem(data['%d' % (machine_number + 1)][0])
-            item1 = QTableWidgetItem(data['%d' % (machine_number + 1)][1])
-            item2 = QTableWidgetItem(data['%d' % (machine_number + 1)][2])
-            item3 = QTableWidgetItem(data['%d' % (machine_number + 1)][3])
+        for machine_number in range(1, self.data_collector.machine_num() + 1):
+            i, j = self.get_row_col_at(machine_number)
+
+            item0 = QTableWidgetItem(str(data[machine_number][0]))
+            item1 = QTableWidgetItem(str(data[machine_number][1]))
+            item2 = QTableWidgetItem(str(data[machine_number][2]))
+            item3 = QTableWidgetItem(str(data[machine_number][3]))
 
             self.ui.table_1.setItem(i, j, item0)
-            self.ui.table_1.item(i, j - 1).setFlags(self.ui.table_1.item(i, j - 1).flags()
-                                                    & ~Qt.ItemIsEnabled)
-            self.ui.table_1.item(i, j).setFlags(self.ui.table_1.item(i, j).flags()
-                                                    & ~Qt.ItemIsEnabled)
+            # self.ui.table_1.item(i, j - 1).setFlags(self.ui.table_1.item(i, j - 1).flags()
+            #                                         & ~Qt.ItemIsEnabled)
+            # self.ui.table_1.item(i, j).setFlags(self.ui.table_1.item(i, j).flags()
+            #                                     & ~Qt.ItemIsEnabled)
 
             self.ui.table_1.setItem(i + 1, j, item1)
             self.ui.table_1.item(i + 1, j - 1).setFlags(self.ui.table_1.item(i + 1, j - 1).flags()
                                                         & ~Qt.ItemIsEnabled)
 
             self.ui.table_1.setItem(i + 2, j, item2)
-            self.ui.table_1.item(i + 2, j- 1).setFlags(self.ui.table_1.item(i + 2, j- 1).flags()
-                                                                & ~Qt.ItemIsEnabled)
-            self.ui.table_1.item(i + 2, j).setFlags(self.ui.table_1.item(i + 2, j).flags()
-                                                                & ~Qt.ItemIsEnabled)
+            # self.ui.table_1.item(i + 2, j - 1).setFlags(self.ui.table_1.item(i + 2, j - 1).flags()
+            #                                             & ~Qt.ItemIsEnabled)
+            # self.ui.table_1.item(i + 2, j).setFlags(self.ui.table_1.item(i + 2, j).flags()
+            #                                         & ~Qt.ItemIsEnabled)
 
             self.ui.table_1.setItem(i + 3, j, item3)
-            self.ui.table_1.item(i + 3, j - 1).setFlags(self.ui.table_1.item(i + 3, j - 1).flags()
-                                                                & ~Qt.ItemIsEnabled)
-            self.ui.table_1.item(i + 3, j).setFlags(self.ui.table_1.item(i + 3, j).flags()
-                                                                & ~Qt.ItemIsEnabled)
+            # self.ui.table_1.item(i + 3, j - 1).setFlags(self.ui.table_1.item(i + 3, j - 1).flags()
+            #                                             & ~Qt.ItemIsEnabled)
+            # self.ui.table_1.item(i + 3, j).setFlags(self.ui.table_1.item(i + 3, j).flags()
+            #                                         & ~Qt.ItemIsEnabled)
 
+        # 对表格单元格进行监听，单元格编辑完成后进入该事件
+        # 该怎么做呢
+        #self.ui.table_1.itemChanged.connect(self.submit_control_code)
 
-
-
-        self.append_info("数据读取完成！")
-
-        # n_row = self.ui.table_1.rowCount()
-        #
-        # # 表格的行号从 0 开始
-        # for count in range(self.data_collector.get_machine_num()):
-        #     for i in range(4):
-        #         item_row = i + (count * 4) % n_row  # 根据机器编号找到表格行号
-        #         item_col = int(count / self.n_machine_each_col) * 2 + 1  # 根据机器编号和每列可显示机器数量找到表格列号
-        #
-        #         item = QTableWidgetItem("获取错误")
-        #         self.ui.table_1.setItem(item_row, item_col, item)
-
+        self.append_info("表格数据更新完成！")
 
     def get_row_col_at(self, machine_number):
         """
