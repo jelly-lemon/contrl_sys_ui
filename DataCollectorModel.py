@@ -1,11 +1,22 @@
+import threading
 import time
 import serial
 from util import *
 import math
 
 
-class DataCollector():
-    def __init__(self, port: str, collector_addr: str):
+class DataCollectorModel():
+    def __init__(self):
+        self.ser = None
+        self.port = None
+        self.collector_addr = None
+
+    def update_serial(self, port: str, collector_addr: str):
+        # 先关闭之前的
+        if self.ser != None:
+            self.ser.close()
+
+        # 再新建
         self.ser = serial.Serial(port, 9600, timeout=5)  # 开启com3口，波特率，超时
         self.ser.flushInput()  # 清空输入缓存（向串口输入）
 
@@ -15,15 +26,20 @@ class DataCollector():
     def get_port(self):
         return self.port
 
-    def close(self):
-        self.ser.close()
+    def get_collector_addr(self):
+        return self.collector_addr
 
-    def query_data(self) -> dict:
+
+    def get_table_data(self) -> dict:
+        """
+        必须在子线程中完成，因为有耗时操作
+        :return:
+        """
         # 设备地址  功能码     寄存器起始地址     寄存器访问个数
         # 06        03        0001              0001
         all_data = ""
 
-        n_machine = self.machine_num()
+        n_machine = self.machine_num()  # 先查询机器数量
 
         query_times = math.ceil((n_machine * 4) / 32)
         last_query_num = n_machine % 32
@@ -67,11 +83,10 @@ class DataCollector():
 
         return return_data
 
-    def send_instruction(self):
-        return
 
     def machine_num(self) -> int:
         """
+        必须在子线程中完成，因为有耗时操作
         获取机器数量
         :return:机器数量
         """
@@ -82,7 +97,7 @@ class DataCollector():
         # 向控制器发送数据
         # 设备地址  功能码     寄存器起始地址     寄存器访问个数
         # 06        03        0000              0001
-        self.ser.write(bytes.fromhex(get_crc16(self.collector_addr + " 03 0000 0001")))
+        self.ser.write(bytes.fromhex(get_crc16(self.collector_addr + "03 0000 0001")))
 
         time.sleep(0.1)  # 程序休眠 0.1 秒，等待控制器返回数据
 
@@ -96,6 +111,7 @@ class DataCollector():
 
     def wind_speed(self) -> int:
         """
+        必须在子线程中完成，因为有耗时操作
         获取风速
         :return: 风速
         """
@@ -112,6 +128,6 @@ class DataCollector():
         if num:
             data = self.ser.read(num)
             if is_crc16(data.hex()):
-                wind_speed = int(data.hex()[6:10], 16)
+                wind_speed = int(data.hex()[6:10], 16) / 100
 
         return wind_speed
