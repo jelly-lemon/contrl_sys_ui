@@ -1,11 +1,13 @@
 import threading
+from functools import partial
 
 from threading import Timer
+import schedule
 
 from PySide2.QtWidgets import QApplication, QHeaderView, QSplitter, QMainWindow, \
     QAction, QInputDialog, QLineEdit
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import Qt
+from PySide2.QtGui import Qt, QColor
 
 import util
 from Controller import Controller
@@ -30,7 +32,9 @@ class MainWindow(QMainWindow):
         # 窗口标题
         self.ui.setWindowTitle("监控界面")
         # 初始化下拉列表框
-        self.controller.get_combobox_data(self.init_combobox)
+        self.controller.get_combobox_data(self.init_port_combobox)
+        #
+        self.init_interval_combobox()
         # 初始化分离器
         self.init_splitter()
         # 初始化表格
@@ -43,6 +47,19 @@ class MainWindow(QMainWindow):
         # 初始化右键菜单
         self.init_context_menu()
 
+        # 初始化菜单
+        self.init_menu_bar()
+
+
+
+    def init_menu_bar(self):
+
+        self.ui.wind_bread.triggered.connect(partial(self.controller.wind_bread, self.append_info))
+        self.ui.snow_removal.triggered.connect(partial(self.controller.snow_removal, self.append_info))
+        self.ui.clean_board.triggered.connect(partial(self.controller.clean_board, self.append_info))
+        self.ui.lock.triggered.connect(partial(self.controller.lock, self.append_info))
+        self.ui.unlock.triggered.connect(partial(self.controller.unlock, self.append_info))
+
     def update_member(self, member):
         """
         更新成员数
@@ -53,7 +70,7 @@ class MainWindow(QMainWindow):
 
 
 
-    def init_combobox(self, port_name_list: list):
+    def init_port_combobox(self, port_name_list: list):
         """
         初始化下拉列表框
         :return:无
@@ -64,6 +81,11 @@ class MainWindow(QMainWindow):
             self.append_info("共扫描到 %d 个串口设备：%s" % (len(port_name_list), port_name_list))
         else:
             self.append_info("未检测到任何串口设备")
+
+    def init_interval_combobox(self):
+        interval_list = ['10 s', '15 s', '30 s', '60 s']
+        self.ui.combobox_interval.addItems(interval_list)
+
 
     def init_splitter(self):
         """
@@ -93,13 +115,26 @@ class MainWindow(QMainWindow):
         """
         self.ui.output_edit.setReadOnly(True)  # 禁止编辑
 
-    def append_info(self, info: str):
+
+    def append_info(self, info: str, color: str = 'black'):
         """
         输出框追加信息信息
         :param info:需要显示的信息
         :return:
         """
+        black = QColor(0, 0, 0)
+
+        if color == 'red':
+            c = QColor(255, 0, 0)
+        else:
+            c = black
+
+        self.ui.output_edit.setTextColor(c)
         self.ui.output_edit.append(util.get_time() + " " + info)  # 显示文本
+        self.ui.output_edit.setTextColor(black)
+
+
+
 
     def init_table(self):
         """
@@ -131,7 +166,7 @@ class MainWindow(QMainWindow):
             self.ui.box_com_port.setEnabled(False)
             self.ui.edit_baudrate.setEnabled(False)
             self.ui.edit_addr.setEnabled(False)
-            self.ui.edit_interval.setEnabled(False)
+            self.ui.combobox_interval.setEnabled(False)
 
 
             # 开始轮询
@@ -139,6 +174,9 @@ class MainWindow(QMainWindow):
             self.timer.start()
             self.isPolling = True
             self.append_info("开始轮询")
+
+            schedule.run_pending()  # 执行所有定时任务
+
 
 
 
@@ -150,10 +188,12 @@ class MainWindow(QMainWindow):
             self.ui.box_com_port.setEnabled(True)
             self.ui.edit_baudrate.setEnabled(True)
             self.ui.edit_addr.setEnabled(True)
-            self.ui.edit_interval.setEnabled(True)
+            self.ui.combobox_interval.setEnabled(True)
+
 
             # 停止轮询
             self.timer.cancel()
+            #schedule.cancel_job(self.schedule)
             self.isPolling = False
             self.append_info("结束轮询")
 
@@ -163,12 +203,19 @@ class MainWindow(QMainWindow):
         :return:无
         """
 
-        interval = int(self.ui.edit_interval.text())
+
+        # 不能在子线程中又创建
+        interval = int(self.ui.combobox_interval.currentText()[:-2])
         self.timer = Timer(interval, self.poling)
         self.timer.start()
 
+
         self.controller.get_table_data(self.update_table, self.update_member, self.append_info)
         self.controller.get_wind_speed(self.update_wind_speed)
+
+
+
+
 
 
     def update_wind_speed(self, wind_speed):
@@ -179,13 +226,20 @@ class MainWindow(QMainWindow):
         """
         self.ui.label_wind_speed.setText(str(wind_speed) + " m/s")
 
+    def print_test(self):
+        print(util.get_time())
+
     def update_table(self, table_model):
         """
         更新表格数据
         :param table_model:表格数据模型
         :return:无
         """
-        self.ui.tableView.setModel(table_model)
+
+        self.ui.tableView.setModel(table_model) # 如果在子线程中调用这句，就会
+        # Cannot create children for a parent that is in a different thread.
+
+
 
         # 对表格单元格进行监听，单元格编辑完成后进入该事件
         # 该怎么做呢
@@ -199,7 +253,9 @@ class MainWindow(QMainWindow):
         :return:
         """
         # tableView 允许右键菜单
-        self.ui.tableView.setContextMenuPolicy(Qt.ActionsContextMenu)
+        #self.ui.tableView.setContextMenuPolicy(Qt.ActionsContextMenu)
+
+
 
         # 具体菜单项
         send_option = QAction(self.ui.tableView)

@@ -11,6 +11,29 @@ class Controller:
     """
     MainWindow 界面类的控制器
     """
+    def greet(self, append_info):
+        append_info(util.get_time())
+
+    def wind_bread(self, append_info):
+        self.dataCollectorModel.wind_bread()
+
+        append_info("一键防风")
+
+    def snow_removal(self, append_info):
+        self.dataCollectorModel.snow_removal()
+        append_info("一键除雪")
+
+    def clean_board(self, append_info):
+        self.dataCollectorModel.clean_board()
+        append_info("一键清洗")
+
+    def lock(self, append_info):
+        self.dataCollectorModel.lock()
+        append_info("一键上锁")
+
+    def unlock(self, append_info):
+        self.dataCollectorModel.unlock()
+        append_info("一键解锁")
 
     def __init__(self):
         self.dataCollectorModel = DataCollectorModel()
@@ -75,6 +98,7 @@ class Controller:
 
         data = self.dataCollectorModel.get_table_data()
 
+
         n_machine = len(data)  # 机器数量
 
         update_member(n_machine)
@@ -83,12 +107,13 @@ class Controller:
         if data == {} or data is None:
 
             for i in range(1, n_machine + 1):
-                data['%d' % i] = ('故障代码' + str(i), '控制代码' + str(i),
-                                  '锁状态' + str(i), '实时角度' + str(i))
+                data['%d' % i] = ('', '',
+                                  '', '')
 
         # 首先清理表格
         table_model = QStandardItemModel()
         table_model.clear()
+
 
 
         error_info = ""
@@ -135,7 +160,8 @@ class Controller:
             table_model.setItem(i + 3, j, t3)
             table_model.setItem(i + 3, j + 1, item3)
 
-        update_table(table_model)
+        update_table(table_model)   # 就是这句，子线程问题
+
         if error_info != "":
             # 播放警报声
             playsound('./other/bee.mp3')
@@ -143,7 +169,7 @@ class Controller:
             # 写在文件里
             self.write_error_info(error_info)
             # 输出到窗口
-            append_info("有异常机器编号：" + error_info)
+            append_info("有异常机器编号：" + error_info, 'red')
 
     def write_wind_speed(self, wind_speed: float):
         # 检查文件是否存在，一个月保存为一个文件

@@ -104,6 +104,26 @@ class DataCollectorModel():
             data = self.ser.read(num)
             print(data.hex().upper())
 
+    def wind_bread(self):
+        # TODO 发送防风
+        return
+
+    def snow_removal(self):
+        # TODO 除雪
+        return
+
+    def clean_board(self):
+        # TODO 清洗
+        return
+
+    def lock(self):
+        # TODO 上锁
+        return
+
+    def unlock(self):
+        # TODO 解锁
+        return
+
     def get_table_data(self) -> dict:
         """
         获取表格数据，必须在子线程中完成，因为有耗时操作
@@ -116,21 +136,31 @@ class DataCollectorModel():
         n_machine = self.machine_num()  # 先查询机器数量
 
 
-        query_times = math.ceil((n_machine * 4) / 32)
-        last_query_num = n_machine % 32
+        query_times = math.ceil(n_machine  / 8) # 一次最多查 8 台
+        last_query_num = n_machine - (query_times-1)*8  # 最后一次查询机器数量
 
-        start_n = int()
-        for i in range(query_times):
-            if i == 0:
-                start_n = 2
-                number_hex = "{:#06X}".format(32)[2:]
-            elif i == query_times - 1:
+        start_n = 2 # 开始字节位置
+        for i in range(1, query_times + 1):
+            # print(i)
+            if i == query_times:
+                # 最后一次
                 start_n += 32
-                number_hex = "{:#06X}".format(last_query_num)[2:]
+                # 寄存器数量
+                number_hex = "{:#06X}".format(last_query_num * 4)[2:]
+                
             else:
-                start_n += 32
+                # 不是最后一次查询
+                if start_n == 2:
+                    # 第一次查询
+                    start_n = 2
+                else:
+                    start_n += 32
+
+                # 32 个寄存器
                 number_hex = "{:#06X}".format(32)[2:]
 
+
+            # 查询起始地址
             start_addr = "{:#06X}".format(start_n)[2:]
 
             # 向控制器发送数据，允许有空格
@@ -141,14 +171,20 @@ class DataCollectorModel():
             num = self.ser.inWaiting()  # 返回接收缓存字节数
             if num:
                 data = self.ser.read(num)
-                print(data.hex()[6:-4])
-                all_data += data.hex()[6:-4]
+                if is_crc16(data.hex()):
+                    print(data.hex()[6:-4])
+                    all_data += data.hex()[6:-4]
+                else:
+                    return {}
+
 
         return_data = {}
         for i in range(1, n_machine + 1):
             start = (i - 1) * 16
 
             machine_data = []
+            # print(i, all_data[start:])
+            # print(i, all_data[start:start + 4])
             machine_data.append(int(all_data[start:start + 4], 16))
             machine_data.append(int(all_data[start + 4:start + 8], 16))
             machine_data.append(int(all_data[start + 8:start + 12], 16))

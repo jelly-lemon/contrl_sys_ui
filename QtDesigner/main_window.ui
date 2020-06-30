@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1165</width>
+    <width>1258</width>
     <height>599</height>
    </rect>
   </property>
@@ -139,18 +139,15 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="edit_interval">
+       <widget class="QComboBox" name="combobox_interval">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="text">
-         <string>10</string>
-        </property>
         <property name="placeholderText">
-         <string>最低 10 s</string>
+         <string/>
         </property>
        </widget>
       </item>
@@ -258,6 +255,61 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1258</width>
+     <height>26</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>高级功能</string>
+    </property>
+    <addaction name="wind_bread"/>
+    <addaction name="separator"/>
+    <addaction name="snow_removal"/>
+    <addaction name="separator"/>
+    <addaction name="clean_board"/>
+    <addaction name="separator"/>
+    <addaction name="lock"/>
+    <addaction name="separator"/>
+    <addaction name="unlock"/>
+   </widget>
+   <addaction name="menu"/>
+  </widget>
+  <action name="wind_bread">
+   <property name="text">
+    <string>一键防风</string>
+   </property>
+  </action>
+  <action name="snow_removal">
+   <property name="text">
+    <string>一键除雪</string>
+   </property>
+  </action>
+  <action name="clean_board">
+   <property name="text">
+    <string>一键清洗</string>
+   </property>
+  </action>
+  <action name="action_11">
+   <property name="text">
+    <string>一键解锁</string>
+   </property>
+  </action>
+  <action name="lock">
+   <property name="text">
+    <string>一键上锁</string>
+   </property>
+  </action>
+  <action name="unlock">
+   <property name="text">
+    <string>一键解锁</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
