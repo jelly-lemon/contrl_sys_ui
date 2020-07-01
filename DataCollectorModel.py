@@ -75,6 +75,25 @@ class DataCollectorModel():
         """
         return self.collector_addr
 
+    def one_key(self, instruction: str) -> bool:
+        """
+        一键操作
+        :param instruction:
+        :return:
+        """
+        self.ser.flushInput()  # 清空输入缓存（向串口发送）
+        self.ser.write(bytes.fromhex(get_crc16(self.collector_addr + "06 01FF" + instruction)))
+        time.sleep(0.1)  # 程序休眠 0.1 秒，等待控制器返回数据
+        num = self.ser.inWaiting()  # 返回接收缓存字节数
+        if num:
+            data = self.ser.read(num)
+            if is_crc16(data.hex()):
+                return True
+
+        return False
+
+
+
     def send_control_code(self, machine_number: int, code: str):
         """
         给控制器发送控制代码
@@ -105,24 +124,25 @@ class DataCollectorModel():
             print(data.hex().upper())
 
     def wind_bread(self):
-        # TODO 发送防风
-        return
+
+
+        return self.one_key("00 06")
+
 
     def snow_removal(self):
-        # TODO 除雪
-        return
+
+
+        return self.one_key("00 07")
 
     def clean_board(self):
-        # TODO 清洗
-        return
+
+        return self.one_key("00 08")
 
     def lock(self):
-        # TODO 上锁
-        return
+        return self.one_key("00 09")
 
     def unlock(self):
-        # TODO 解锁
-        return
+        return self.one_key("00 0A")
 
     def get_table_data(self) -> dict:
         """

@@ -1,24 +1,21 @@
-from threading import Timer
+from PySide2 import QtCore
 
-import schedule
 
-import util
 
-class MainWindow:
-    def show_name(self, str):
-        print(str)
+def greet(name: str, name_list: list):
+    print("hello, " + name)
+    print(name_list)
 
-    def polling(self):
-        self.show_name(util.get_time())
-        timer = Timer(1, self.polling)
-        timer.start()
+class Communicate(QtCore.QObject):
+    speak = QtCore.Signal(str, list)
+
 
 
 
 if __name__ == '__main__':
+    someone = Communicate()
 
-    main_window = MainWindow()
-    
-    timer = Timer(0, polling)
-    timer.start()
 
+    someone.speak.connect(greet)
+
+    someone.speak.emit("lemon", ['a', 'b'])

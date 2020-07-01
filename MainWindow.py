@@ -3,11 +3,13 @@ from functools import partial
 
 from threading import Timer
 import schedule
+from PySide2.QtCore import QTimer
 
 from PySide2.QtWidgets import QApplication, QHeaderView, QSplitter, QMainWindow, \
-    QAction, QInputDialog, QLineEdit
+    QAction, QInputDialog, QLineEdit, QMenu, QTableView
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import Qt, QColor
+from PySide2 import QtGui, QtCore
 
 import util
 from Controller import Controller
@@ -17,6 +19,12 @@ class MainWindow(QMainWindow):
     """
     主窗口类
     """
+
+    class Communicate(QtCore.QObject):
+        def __init__(self, *args):
+            super().__init__()
+
+            self.speak = QtCore.Signal(str, list)
 
     def __init__(self):
         super().__init__()
@@ -45,7 +53,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_submit.clicked.connect(self.submit_poling)
 
         # 初始化右键菜单
-        self.init_context_menu()
+        # self.init_context_menu()
 
         # 初始化菜单
         self.init_menu_bar()
@@ -146,6 +154,37 @@ class MainWindow(QMainWindow):
         # 设置每列宽度：根据内容调整表格宽度
         self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
+        # 鼠标左键点击事件
+        self.ui.tableView.clicked.connect(self.table_left_click)
+
+        t = QTableView()
+        t.clicked.connect(self.table_left_click)
+
+    def table_left_click(self, item):
+
+        # 具体菜单项
+        # menu = QMenu()
+        #
+        # send_option = QAction(self.ui.tableView)
+        # send_option.setText("发送控制代码")
+        # send_option.triggered.connect(self.show_modify_dialog)
+        #
+        # menu.addAction(send_option)
+        # menu.popup(QtGui.QCursor.pos())
+
+        # set button context menu policy
+        #self.ui.tableView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        #self.ui.tableView.customContextMenuRequested.connect(self.show_modify_dialog)
+
+        # tableView 添加具体的右键菜单
+        #self.ui.tableView.addAction(send_option)
+
+        self.show_modify_dialog()
+
+
+        sf = "You clicked on {0}x{1}".format(item.column(), item.row())
+        print(sf)
+
     def submit_poling(self):
         """
         提交轮询
@@ -170,8 +209,15 @@ class MainWindow(QMainWindow):
 
 
             # 开始轮询
-            self.timer = Timer(0, self.poling)
-            self.timer.start()
+            #self.timer = Timer(0, self.poling)
+            #self.timer.start()
+
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.poling)
+            interval = int(self.ui.combobox_interval.currentText()[:-2])
+            self.timer.start(interval * 1000) # 不会立马执行，而是等待指定时间后
+            self.poling()
+
             self.isPolling = True
             self.append_info("开始轮询")
 
@@ -192,22 +238,20 @@ class MainWindow(QMainWindow):
 
 
             # 停止轮询
-            self.timer.cancel()
+            self.timer.stop()
             #schedule.cancel_job(self.schedule)
             self.isPolling = False
             self.append_info("结束轮询")
+
 
     def poling(self):
         """
         轮询查询
         :return:无
         """
-
-
         # 不能在子线程中又创建
-        interval = int(self.ui.combobox_interval.currentText()[:-2])
-        self.timer = Timer(interval, self.poling)
-        self.timer.start()
+        # interval = int(self.ui.combobox_interval.currentText()[:-2])
+
 
 
         self.controller.get_table_data(self.update_table, self.update_member, self.append_info)
@@ -247,23 +291,17 @@ class MainWindow(QMainWindow):
 
         self.append_info("数据更新完成！")
 
-    def init_context_menu(self):
-        """
-        初始化右键菜单
-        :return:
-        """
-        # tableView 允许右键菜单
-        #self.ui.tableView.setContextMenuPolicy(Qt.ActionsContextMenu)
+    # def init_context_menu(self):
+    #     """
+    #     初始化右键菜单
+    #     :return:
+    #     """
+    #     # tableView 允许右键菜单
+    #     #self.ui.tableView.setContextMenuPolicy(Qt.ActionsContextMenu)
 
 
 
-        # 具体菜单项
-        send_option = QAction(self.ui.tableView)
-        send_option.setText("发送控制代码")
-        send_option.triggered.connect(self.show_modify_dialog)
 
-        # tableView 添加具体的右键菜单
-        self.ui.tableView.addAction(send_option)
 
     def show_modify_dialog(self):
         """

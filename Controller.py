@@ -15,25 +15,36 @@ class Controller:
         append_info(util.get_time())
 
     def wind_bread(self, append_info):
-        self.dataCollectorModel.wind_bread()
+        if self.dataCollectorModel.wind_bread():
+            append_info("一键防风成功")
+        else:
+            append_info("一键防风失败，请重试", "red")
 
-        append_info("一键防风")
+
 
     def snow_removal(self, append_info):
-        self.dataCollectorModel.snow_removal()
-        append_info("一键除雪")
+        if self.dataCollectorModel.snow_removal():
+            append_info("一键除雪成功")
+        else:
+            append_info("一键除雪失败，请重试", "red")
 
     def clean_board(self, append_info):
-        self.dataCollectorModel.clean_board()
-        append_info("一键清洗")
+        if self.dataCollectorModel.clean_board():
+            append_info("一键清洗成功")
+        else:
+            append_info("一键清洗失败，请重试", "red")
 
     def lock(self, append_info):
-        self.dataCollectorModel.lock()
-        append_info("一键上锁")
+        if self.dataCollectorModel.lock():
+            append_info("一键上锁成功")
+        else:
+            append_info("一键上锁失败，请重试", "red")
 
     def unlock(self, append_info):
-        self.dataCollectorModel.unlock()
-        append_info("一键解锁")
+        if self.dataCollectorModel.unlock():
+            append_info("一键解锁成功")
+        else:
+            append_info("一键解锁失败，请重试", "red")
 
     def __init__(self):
         self.dataCollectorModel = DataCollectorModel()
