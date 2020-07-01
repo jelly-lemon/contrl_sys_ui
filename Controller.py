@@ -96,6 +96,8 @@ class Controller:
         # 回调主线程函数，更新界面
         callback(port_name_list)
 
+
+
     def get_table_data(self, update_table, update_member, append_info):
         """
         获取表格数据

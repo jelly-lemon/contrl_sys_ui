@@ -13,6 +13,9 @@ class Communicate(QtCore.QObject):
 
 
 if __name__ == '__main__':
+    o = QtCore.QObject()
+
+
     someone = Communicate()
 
 
