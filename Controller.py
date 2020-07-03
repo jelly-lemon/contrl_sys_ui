@@ -176,9 +176,9 @@ class Controller:
             # 写在文件里
             self.write_error_info(error_number)
             # 输出到窗口
-            append_info("有异常机器编号：" + error_number, 'red')
+            append_info("有异常机器编号：" + error_number)
         else:
-            append_info("数据更新完成，无异常", 'green')
+            append_info("数据更新完成，无异常")
 
     def write_wind_speed(self, wind_speed: float):
         # 检查文件是否存在，一个月保存为一个文件

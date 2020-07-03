@@ -146,7 +146,7 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="placeholderText">
+        <property name="placeholderText" stdset="0">
          <string/>
         </property>
        </widget>
@@ -280,7 +280,14 @@
     <addaction name="separator"/>
     <addaction name="clean_board"/>
    </widget>
+   <widget class="QMenu" name="menu_help">
+    <property name="title">
+     <string>帮助</string>
+    </property>
+    <addaction name="about"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="menu_help"/>
   </widget>
   <action name="restart">
    <property name="text">
@@ -293,11 +300,6 @@
    </property>
   </action>
   <action name="unlock1">
-   <property name="text">
-    <string>一键解锁</string>
-   </property>
-  </action>
-  <action name="action_11">
    <property name="text">
     <string>一键解锁</string>
    </property>
@@ -315,6 +317,11 @@
   <action name="clean_board">
    <property name="text">
     <string>一键清洗</string>
+   </property>
+  </action>
+  <action name="about">
+   <property name="text">
+    <string>关于</string>
    </property>
   </action>
  </widget>

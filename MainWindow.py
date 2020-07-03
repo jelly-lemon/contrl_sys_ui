@@ -5,10 +5,11 @@ from functools import partial
 from threading import Timer
 
 
-from PySide2.QtWidgets import QSplitter, QHeaderView, QApplication, QInputDialog, QDialog, QLabel, QVBoxLayout, QLineEdit
+from PySide2.QtWidgets import QSplitter, QHeaderView, QApplication, QInputDialog, QDialog, QLabel, QVBoxLayout, \
+    QLineEdit, QSystemTrayIcon, QTableView
 
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import Qt, QColor, QTextCursor
+from PySide2.QtGui import Qt, QColor, QTextCursor, QIcon, QStandardItemModel
 
 import util
 from Controller import Controller
@@ -91,6 +92,11 @@ class MainWindow():
         # 窗口标题
         self.ui.setWindowTitle("监控界面")
 
+        # 左上角图标
+        appIcon = QIcon("./other/logo.png")
+        self.ui.setWindowIcon(appIcon)
+
+
     def init_menu_bar(self):
         """
         初始化菜单栏
@@ -102,6 +108,24 @@ class MainWindow():
         self.ui.wind_bread.triggered.connect(partial(self.start_one_key, self.ui.wind_bread.text()))
         self.ui.snow_removal.triggered.connect(partial(self.start_one_key, self.ui.snow_removal.text()))
         self.ui.clean_board.triggered.connect(partial(self.start_one_key, self.ui.clean_board.text()))
+
+        self.ui.about.triggered.connect(self.show_about)
+
+
+
+    def show_about(self):
+        dial = QDialog()
+        dial.setWindowFlags(dial.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        dial.setWindowTitle("关于")
+        label = QLabel("四川近日点新能源科技有限公司\n联系电话：028-xxxxxxx")
+        # 创建布局并添加控件
+        layout = QVBoxLayout()
+        layout.addWidget(label)
+        # 设置对话框布局
+        dial.setLayout(layout)
+        # 进入事件循环
+        dial.exec_()
+
 
     def start_one_key(self, cmd):
         """
@@ -227,6 +251,8 @@ class MainWindow():
         # 鼠标左键点击事件
         self.ui.tableView.clicked.connect(self.table_left_click)
 
+
+
     def table_left_click(self, item):
         """
         处理表格左键点击事件
@@ -328,6 +354,8 @@ class MainWindow():
         # 如果在子线程中调用这句，就会
         # Cannot create children for a parent that is in a different thread.
         # 暂时不管它
+        s = QStandardItemModel()
+
         self.ui.tableView.setModel(table_model)
 
         # 对表格单元格进行监听，单元格编辑完成后进入该事件
@@ -345,6 +373,12 @@ class MainWindow():
         显示发送控制代码的对话框
         :return: 无
         """
+        if self.isPolling:
+            recover_polling = True
+        else:
+            recover_polling = False
+
+
         i = self.ui.tableView.currentIndex().row()
         j = self.ui.tableView.currentIndex().column()
         if i % 4 == 1 and j % 2 == 1:
@@ -353,27 +387,6 @@ class MainWindow():
 
             machine_number = self.controller.get_machine_number(i, j)
 
-            # input_dial = QInputDialog()
-            # TODO 去不掉问号？
-            #input_dial.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)  # 去掉对话框问号
-            # text, okPressed = input_dial.getText(self, "发送控制代码", "%d 号控制器：" % machine_number, QLineEdit.Normal, "")
-            # if okPressed and text != '':
-            #     cmd = ('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'a')
-            #     if text not in cmd:
-            #         dial = QDialog()
-            #         dial.setWindowTitle("提示")
-            #         label = QLabel("输入命令有误，命令只能是其中一个：" + str(cmd))
-            #         # 创建布局并添加控件
-            #         layout = QVBoxLayout()
-            #         layout.addWidget(label)
-            #         # 设置对话框布局
-            #         dial.setLayout(layout)
-            #         # 进入事件循环
-            #         dial.exec_()
-            #     else:
-            #         t1 = threading.Thread(target=self.controller.send_control_code,
-            #                               args=(machine_number, text, self.append_info))
-            #         t1.start()  # 子线程执行
 
             input_dial = ModifyDialog("发送控制代码", "%d 号控制器：" % machine_number)
 
@@ -397,6 +410,9 @@ class MainWindow():
                                           args=(machine_number, text, self.append_info))
                     t1.start()  # 子线程执行
 
+            if recover_polling:
+                self.start_polling()
+
 
 
 
@@ -408,11 +424,14 @@ if __name__ == '__main__':
     # main_window.ui.show()  # 按实际大小显示窗口
     main_window.ui.showMaximized()  # 全屏显示窗口，必须要用，不然不显示界面
 
+
     # 退出时关闭所有 Timer
     #app.aboutToQuit.connect(main_window.close_timer)
 
     # 应用关闭时返回0,sys关闭进程
     app.exec_()
+
+
     # if not app.exec_():
     #     main_window.close_timer()
     #     print("no")
