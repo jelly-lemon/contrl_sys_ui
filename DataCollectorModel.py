@@ -1,6 +1,8 @@
 import threading
 import time
 import serial
+from serial import SerialException
+
 from util import *
 import math
 
@@ -9,13 +11,11 @@ class DataCollectorModel():
     """
     MainWindow 数据模型
     """
-
     def __init__(self):
         self.ser = None
         self.port = None
         self.collector_addr = None
-        self.baudrate = None
-
+        self.baud_rate = None
 
     def get_member(self) -> int:
         """
@@ -24,12 +24,13 @@ class DataCollectorModel():
         """
         n_machine = -1
 
-        self.ser.flushInput()  # 清空输入缓存（向串口发送）
 
+        self.ser.flushInput()  # 清空输入缓存（向串口发送）
         # 向控制器发送数据
         # 设备地址  功能码     寄存器起始地址     寄存器访问个数
         # 06        03        0000              0001
         self.ser.write(bytes.fromhex(get_crc16(self.collector_addr + "03 0000 0001")))
+
 
         time.sleep(0.1)  # 程序休眠 0.1 秒，等待控制器返回数据
 
@@ -41,8 +42,7 @@ class DataCollectorModel():
 
         return n_machine
 
-
-    def update_serial(self, port: str, baudrate: str, collector_addr: str):
+    def update_serial(self, port: str, baud_rate: str, collector_addr: str):
         """
         更新串口实例
         :param port:端口号
@@ -54,12 +54,40 @@ class DataCollectorModel():
             self.ser.close()
 
         # 再新建
-        self.ser = serial.Serial(port, int(baudrate), timeout=5)  # 开启com3口，波特率，超时
-        self.ser.flushInput()  # 清空输入缓存（向串口输入）
+        try:
+            self.ser = serial.Serial(port, int(baud_rate), timeout=5)  # 开启com3口，波特率，超时
+            self.ser.flushInput()  # 清空输入缓存（向串口输入）
 
-        self.port = port
-        self.collector_addr = collector_addr
-        self.baudrate = baudrate
+            self.port = port
+            self.collector_addr = collector_addr
+            self.baud_rate = baud_rate
+        except SerialException:
+            # 创建失败
+            return False
+
+        return self.test_ser()
+
+    def test_ser(self):
+        """
+        测试串口是否正常
+        :return:
+        """
+        # 查询机器数量
+        self.ser.flushInput()  # 清空输入缓存（向串口发送）
+
+        # 向控制器发送数据
+        # 设备地址  功能码     寄存器起始地址     寄存器访问个数
+        # 06        03        0000              0001
+        self.ser.write(bytes.fromhex(get_crc16(self.collector_addr + "03 0000 0001")))
+
+        time.sleep(0.1)  # 程序休眠 0.1 秒，等待控制器返回数据
+
+        num = self.ser.inWaiting()  # 返回接收缓存字节数
+        if num:
+            return True
+        return False
+
+
 
     def get_port(self):
         """
@@ -81,6 +109,8 @@ class DataCollectorModel():
         :param instruction:
         :return:
         """
+        if self.ser == None:
+            return False
         self.ser.flushInput()  # 清空输入缓存（向串口发送）
         self.ser.write(bytes.fromhex(get_crc16(self.collector_addr + "06 01FF" + instruction)))
         time.sleep(0.1)  # 程序休眠 0.1 秒，等待控制器返回数据
@@ -91,8 +121,6 @@ class DataCollectorModel():
                 return True
 
         return False
-
-
 
     def send_control_code(self, machine_number: int, code: str):
         """
@@ -123,27 +151,6 @@ class DataCollectorModel():
             data = self.ser.read(num)
             print(data.hex().upper())
 
-    def wind_bread(self):
-
-
-        return self.one_key("00 06")
-
-
-    def snow_removal(self):
-
-
-        return self.one_key("00 07")
-
-    def clean_board(self):
-
-        return self.one_key("00 08")
-
-    def lock(self):
-        return self.one_key("00 09")
-
-    def unlock(self):
-        return self.one_key("00 0A")
-
     def get_table_data(self) -> dict:
         """
         获取表格数据，必须在子线程中完成，因为有耗时操作
@@ -155,11 +162,10 @@ class DataCollectorModel():
 
         n_machine = self.machine_num()  # 先查询机器数量
 
+        query_times = math.ceil(n_machine / 8)  # 一次最多查 8 台
+        last_query_num = n_machine - (query_times - 1) * 8  # 最后一次查询机器数量
 
-        query_times = math.ceil(n_machine  / 8) # 一次最多查 8 台
-        last_query_num = n_machine - (query_times-1)*8  # 最后一次查询机器数量
-
-        start_n = 2 # 开始字节位置
+        start_n = 2  # 开始字节位置
         for i in range(1, query_times + 1):
             # print(i)
             if i == query_times:
@@ -167,7 +173,7 @@ class DataCollectorModel():
                 start_n += 32
                 # 寄存器数量
                 number_hex = "{:#06X}".format(last_query_num * 4)[2:]
-                
+
             else:
                 # 不是最后一次查询
                 if start_n == 2:
@@ -178,7 +184,6 @@ class DataCollectorModel():
 
                 # 32 个寄存器
                 number_hex = "{:#06X}".format(32)[2:]
-
 
             # 查询起始地址
             start_addr = "{:#06X}".format(start_n)[2:]
@@ -196,7 +201,6 @@ class DataCollectorModel():
                     all_data += data.hex()[6:-4]
                 else:
                     return {}
-
 
         return_data = {}
         for i in range(1, n_machine + 1):

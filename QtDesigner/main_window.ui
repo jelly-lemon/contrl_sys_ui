@@ -268,18 +268,40 @@
     <property name="title">
      <string>一键操作</string>
     </property>
+    <addaction name="restart"/>
+    <addaction name="separator"/>
+    <addaction name="lock"/>
+    <addaction name="separator"/>
+    <addaction name="unlock1"/>
+    <addaction name="separator"/>
     <addaction name="wind_bread"/>
     <addaction name="separator"/>
     <addaction name="snow_removal"/>
     <addaction name="separator"/>
     <addaction name="clean_board"/>
-    <addaction name="separator"/>
-    <addaction name="lock"/>
-    <addaction name="separator"/>
-    <addaction name="unlock"/>
    </widget>
    <addaction name="menu"/>
   </widget>
+  <action name="restart">
+   <property name="text">
+    <string>一键重启</string>
+   </property>
+  </action>
+  <action name="lock">
+   <property name="text">
+    <string>一键上锁</string>
+   </property>
+  </action>
+  <action name="unlock1">
+   <property name="text">
+    <string>一键解锁</string>
+   </property>
+  </action>
+  <action name="action_11">
+   <property name="text">
+    <string>一键解锁</string>
+   </property>
+  </action>
   <action name="wind_bread">
    <property name="text">
     <string>一键防风</string>
@@ -293,21 +315,6 @@
   <action name="clean_board">
    <property name="text">
     <string>一键清洗</string>
-   </property>
-  </action>
-  <action name="action_11">
-   <property name="text">
-    <string>一键解锁</string>
-   </property>
-  </action>
-  <action name="lock">
-   <property name="text">
-    <string>一键上锁</string>
-   </property>
-  </action>
-  <action name="unlock">
-   <property name="text">
-    <string>一键解锁</string>
    </property>
   </action>
  </widget>

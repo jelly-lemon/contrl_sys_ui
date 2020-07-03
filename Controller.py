@@ -7,47 +7,36 @@ import util
 import csv
 from playsound import playsound
 
+
 class Controller:
     """
     MainWindow 界面类的控制器
     """
-    def greet(self, append_info):
-        append_info(util.get_time())
+    def one_key(self, cmd: str, append_info):
 
-    def wind_bread(self, append_info):
-        if self.dataCollectorModel.wind_bread():
-            append_info("一键防风成功")
+        result = False
+        if cmd == "一键重启":
+            result = self.dataCollectorModel.one_key("00 01")
+        elif cmd == "一键上锁":
+            result = self.dataCollectorModel.one_key("00 09")
+        elif cmd == "一键解锁":
+            result = self.dataCollectorModel.one_key("00 0A")
+        elif cmd == "一键防风":
+            result = self.dataCollectorModel.one_key("00 06")
+        elif cmd == "一键除雪":
+            result = self.dataCollectorModel.one_key("00 07")
+        elif cmd == "一键清洗":
+            result = self.dataCollectorModel.one_key("00 08")
+
+        if result:
+            append_info("%s成功" % cmd, 'green')
         else:
-            append_info("一键防风失败，请重试", "red")
-
-
-
-    def snow_removal(self, append_info):
-        if self.dataCollectorModel.snow_removal():
-            append_info("一键除雪成功")
-        else:
-            append_info("一键除雪失败，请重试", "red")
-
-    def clean_board(self, append_info):
-        if self.dataCollectorModel.clean_board():
-            append_info("一键清洗成功")
-        else:
-            append_info("一键清洗失败，请重试", "red")
-
-    def lock(self, append_info):
-        if self.dataCollectorModel.lock():
-            append_info("一键上锁成功")
-        else:
-            append_info("一键上锁失败，请重试", "red")
-
-    def unlock(self, append_info):
-        if self.dataCollectorModel.unlock():
-            append_info("一键解锁成功")
-        else:
-            append_info("一键解锁失败，请重试", "red")
+            append_info("%s失败" % cmd, 'red')
 
     def __init__(self):
         self.dataCollectorModel = DataCollectorModel()
+        self.first_scanning = True
+        self.last_port_list = None
 
     def get_member(self, callback):
         member = self.dataCollectorModel.get_member()
@@ -63,17 +52,17 @@ class Controller:
         """
         self.dataCollectorModel.send_control_code(machine_number, code)
 
-        callback("向 %d 号控制器发送控制代码：%s" % (machine_number, code))
+        callback("向 %d 号控制器发送控制代码 %s 成功" % (machine_number, code), 'green')
 
-    def update_serial(self, port: str, baudrate: str, collector_addr: str, ):
+    def update_serial(self, port: str, baud_rate: str, collector_addr: str, ):
         """
         更新串口实例
         :param port:端口号
         :param collector_addr:数字采集器地址
         :return: 无
         """
-        if port != self.dataCollectorModel.get_port() or collector_addr != self.dataCollectorModel.get_collector_addr():
-            self.dataCollectorModel.update_serial(port, baudrate, collector_addr)
+        # 更新串口
+        return self.dataCollectorModel.update_serial(port, baud_rate, collector_addr)
 
     def get_wind_speed(self, callback):
         """
@@ -85,18 +74,26 @@ class Controller:
         self.write_wind_speed(wind_speed)
         callback(wind_speed)
 
-    def get_combobox_data(self, callback):
+    def get_port_list(self, init_port_combobox):
         """
         获取下拉框数据
         :param callback:回调函数，界面更新下拉数据
         :return: 无
         """
-        port_name_list = util.get_port_list()
+        if self.first_scanning:
+            port_name_list = util.get_port_list()
+            self.last_port_list = port_name_list
+            self.first_scanning = False
+        else:
+            port_name_list = util.get_port_list()
+            if self.last_port_list == port_name_list:
+                # 和上次比没有变化，就不更新界面了
+                return
+            else:
+                self.last_port_list = port_name_list
 
         # 回调主线程函数，更新界面
-        callback(port_name_list)
-
-
+        init_port_combobox(self.last_port_list)
 
     def get_table_data(self, update_table, update_member, append_info):
         """
@@ -110,7 +107,6 @@ class Controller:
         """
 
         data = self.dataCollectorModel.get_table_data()
-
 
         n_machine = len(data)  # 机器数量
 
@@ -127,15 +123,13 @@ class Controller:
         table_model = QStandardItemModel()
         table_model.clear()
 
-
-
-        error_info = ""
+        error_number = ""
         # 填充数据
         for machine_number in range(1, n_machine + 1):
             i, j = self.get_row_col(machine_number)
 
             if data[machine_number][0] != 0:
-                error_info += str(machine_number) + " "
+                error_number += str(machine_number) + " "
 
             error_code_item = QStandardItem(str(data[machine_number][0]))
             error_code_item.setEditable(False)
@@ -173,16 +167,18 @@ class Controller:
             table_model.setItem(i + 3, j, t3)
             table_model.setItem(i + 3, j + 1, item3)
 
-        update_table(table_model)   # 就是这句，子线程问题
+        update_table(table_model)  # 就是这句，子线程问题
 
-        if error_info != "":
+        if error_number != "":
             # 播放警报声
             playsound('./other/bee.mp3')
 
             # 写在文件里
-            self.write_error_info(error_info)
+            self.write_error_info(error_number)
             # 输出到窗口
-            append_info("有异常机器编号：" + error_info, 'red')
+            append_info("有异常机器编号：" + error_number, 'red')
+        else:
+            append_info("数据更新完成，无异常", 'green')
 
     def write_wind_speed(self, wind_speed: float):
         # 检查文件是否存在，一个月保存为一个文件
@@ -229,9 +225,6 @@ class Controller:
         data_row = [util.get_time(), error_info]
         csv_write.writerow(data_row)
         file.close()
-
-
-
 
     def get_row_col(self, machine_number):
         """

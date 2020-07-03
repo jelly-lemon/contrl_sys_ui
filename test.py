@@ -1,24 +1,17 @@
-from PySide2 import QtCore
+import PySide2.QtCore
 
+# Prints PySide2 version
+# e.g. 5.11.1a1
+print(PySide2.__version__)
 
+# Gets a tuple with each version component
+# e.g. (5, 11, 1, 'a', 1)
+print(PySide2.__version_info__)
 
-def greet(name: str, name_list: list):
-    print("hello, " + name)
-    print(name_list)
+# Prints the Qt version used to compile PySide2
+# e.g. "5.11.2"
+print(PySide2.QtCore.__version__)
 
-class Communicate(QtCore.QObject):
-    speak = QtCore.Signal(str, list)
-
-
-
-
-if __name__ == '__main__':
-    o = QtCore.QObject()
-
-
-    someone = Communicate()
-
-
-    someone.speak.connect(greet)
-
-    someone.speak.emit("lemon", ['a', 'b'])
+# Gets a tuple with each version components of Qt used to compile PySide2
+# e.g. (5, 11, 2)
+print(PySide2.QtCore.__version_info__)

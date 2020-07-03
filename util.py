@@ -17,7 +17,7 @@ def get_port_list() -> list:
     获取串口列表
     :return: 串口列表
     """
-    port_name_list = list()
+    port_name_list = []
     # 获取端口列表，列表中为 ListPortInfo 对象
     port_list = list(list_ports.comports())
 
