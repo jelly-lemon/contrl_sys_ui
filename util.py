@@ -107,9 +107,12 @@ def des_encrypt(s: str) -> str:
     secret_key = KEY
     iv = secret_key
     k = des(secret_key, CBC, iv, pad=None, padmode=PAD_PKCS5)
-    en = k.encrypt(s, padmode=PAD_PKCS5)
-    en = binascii.b2a_hex(en)
-    en = str(en, "utf-8").upper()
+    try:
+        en = k.encrypt(s, padmode=PAD_PKCS5)
+        en = binascii.b2a_hex(en)
+        en = str(en, "utf-8").upper()
+    except ValueError:
+        return ""
     return en
 
 # 秘钥
