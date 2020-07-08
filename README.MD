@@ -1,3 +1,13 @@
+# 更新说明
+v1.2（2020/7/8）   
+特点：  
+加入产品密钥验证
+
+打包命令：
+pyinstaller MainWindow.py -p=C:\Users\Administrator\AppData\Local\Programs\Python\Python36-32\Lib\site-packa
+ges\shiboken2 -F  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/app.ico --noconsole
+
+
 # 软件、相关包版本
 Python: Python36（32 位）  
 playsound: 1.2.2 （用来播放声音）  
