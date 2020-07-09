@@ -4,8 +4,8 @@ import inspect
 import wmi
 from pyDes import des, CBC, PAD_PKCS5
 import binascii
-
 from serial.tools import list_ports
+
 
 def get_time() -> str:
     """
@@ -14,6 +14,7 @@ def get_time() -> str:
     """
     now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return now_time
+
 
 def get_port_list() -> list:
     """
@@ -29,6 +30,7 @@ def get_port_list() -> list:
             port_name_list.append(port_name[0])
 
     return port_name_list
+
 
 def get_crc16(str: str) -> str:
     """
@@ -52,6 +54,7 @@ def get_crc16(str: str) -> str:
     result = str + crc_code
 
     return result.upper()
+
 
 def is_crc16(str: str) -> bool:
     """
@@ -88,6 +91,7 @@ def stop_thread(thread):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
+
 def get_cpu() -> str:
     """
     获取 CPU 的序列号
@@ -96,6 +100,9 @@ def get_cpu() -> str:
     c = wmi.WMI()
     return c.Win32_Processor()[0].ProcessorId
 
+
+# 秘钥
+KEY = 'abcJRIDO'
 
 
 def des_encrypt(s: str) -> str:
@@ -115,8 +122,6 @@ def des_encrypt(s: str) -> str:
         return ""
     return en
 
-# 秘钥
-KEY = 'abcJRIDO'
 
 def des_descrypt(s: str) -> str:
     """
@@ -127,10 +132,10 @@ def des_descrypt(s: str) -> str:
     secret_key = KEY
     iv = secret_key
     k = des(secret_key, CBC, iv, pad=None, padmode=PAD_PKCS5)
-    de = k.decrypt(binascii.a2b_hex(s), padmode=PAD_PKCS5)
     try:
+        de = k.decrypt(binascii.a2b_hex(s), padmode=PAD_PKCS5)
         de = str(de, 'utf-8').upper()
-    except UnicodeDecodeError:
+    except (UnicodeDecodeError, ValueError):
         return ""
 
     return de

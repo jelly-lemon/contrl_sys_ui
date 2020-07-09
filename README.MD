@@ -1,4 +1,12 @@
 # 更新说明
+v1.3（2020/7/9）
+特点：
+加入窗口图标，exe 图标
+pyinstaller MainWindow.py   --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/logo.ico --noconsole
+
+2020/7/9 打包命令：pyinstaller MainWindow.py -F  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/logo.ico --noconsole
+
+
 v1.2（2020/7/8）   
 特点：  
 加入产品密钥验证
