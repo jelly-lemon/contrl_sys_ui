@@ -59,7 +59,7 @@ class MainWindow():
         初始化主窗口
         :return: 无
         """
-        self.ui.setWindowTitle("监控界面")  # 窗口标题
+        self.ui.setWindowTitle("光伏集群现场监控")  # 窗口标题
 
         #
         # 左上角图标，任务栏图标

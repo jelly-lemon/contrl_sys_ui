@@ -7,6 +7,9 @@ v1.3.1（2020/7/13）
 - 修复读取成员数逻辑错误
 - 能够写入、读取配置
 
+打包命令：
+pyinstaller MainWindow.py  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/logo.ico --noconsole
+
 v1.3（2020/7/9）   
 特点：  
 - 加入窗口图标，exe 图标
@@ -22,4 +25,8 @@ v1.2（2020/7/8）
 打包命令：   
 pyinstaller MainWindow.py -p=C:\Users\Administrator\AppData\Local\Programs\Python\Python36-32\Lib\site-packa
 ges\shiboken2 -F  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/app.ico --noconsole
+
+# 重要软件包版本
+Python         3.6.8（32 位）
+PySide2        5.12.5
 
