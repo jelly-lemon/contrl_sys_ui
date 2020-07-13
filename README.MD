@@ -2,6 +2,11 @@
 ![image](https://github.com/jelly-lemon/contrl_sys_ui/blob/UseTableView/img/%E4%B8%BB%E7%95%8C%E9%9D%A2.png)
 
 # 更新说明
+v1.3.1（2020/7/13）
+修复 BUG：
+- 修复读取成员数逻辑错误
+- 能够写入、读取配置
+
 v1.3（2020/7/9）   
 特点：  
 - 加入窗口图标，exe 图标

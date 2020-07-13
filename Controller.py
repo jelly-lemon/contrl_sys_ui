@@ -2,7 +2,7 @@ import os
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
 
-from DataCollectorModel import DataCollectorModel
+from Model import Model
 import util
 import csv
 from playsound import playsound
@@ -44,7 +44,7 @@ class Controller:
         初始化控制器
         """
         self.last_port_list = None
-        self.dataCollectorModel = DataCollectorModel()
+        self.dataCollectorModel = Model()
 
     def get_member(self, update_member):
         """
@@ -186,6 +186,37 @@ class Controller:
         else:
             append_info("数据更新完成，无异常")
 
+    def read_config(self):
+        """
+        读取配置文件
+        :return:读取到的数据
+        """
+        try:
+            file = open("./config.txt", mode="r", encoding="utf-8")
+            s = file.readline()
+            if s != "":
+                return s.split()
+        except IOError:
+            pass
+
+        return "", ""
+
+    def write_config(self, baudrate, address) -> bool:
+        """
+        把配置写入文件，方便下次读取
+        :param baudrate: 波特率
+        :param address: 数采地址
+        :return: 是否写入成功
+        """
+        file_path = "./config.txt"
+        if file_path != "":
+            file = open(file_path, mode="w+", encoding="utf-8")
+            if file.write(baudrate + " " + address):
+                file.close()
+                return True
+
+        return False
+
     def write_wind_speed(self, wind_speed: float):
         file_path = self.check_files("wind_speed")  # 检查文件是否存在
         self.write_csv(file_path, str(wind_speed))  # 写入到 csv 文件
@@ -216,10 +247,12 @@ class Controller:
             file_dir = "./wind_speed"
             file_path = file_dir + "/" + util.get_time()[0:10] + "-wind_speed.csv"
             csv_head = ["time", "wind_speed"]
-        else:
+        elif file_name == "error":
             file_dir = "./error_log"
             file_path = file_dir + "/" + util.get_time()[0:10] + "-error.csv"
             csv_head = ["time", "error"]
+        else:
+            return ""
 
         #
         # 不存在则新建

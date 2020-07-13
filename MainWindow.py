@@ -67,6 +67,14 @@ class MainWindow():
         app_icon = QIcon("./other/logo.ico")
         self.ui.setWindowIcon(app_icon)
 
+        #
+        # 读取配置文件
+        #
+        baudrate, address = self.controller.read_config()
+        if baudrate != "" and address != "":
+            self.ui.edit_baudrate.setText(baudrate)
+            self.ui.edit_addr.setText(address)
+
     def init_menu_bar(self):
         """
         初始化菜单栏
@@ -327,6 +335,9 @@ class MainWindow():
             # self.append_info("开始下一次轮询")
             self.next_polling()  # 准备下一次轮询
 
+
+
+
     def stop_polling(self):
         """
         立即停止轮询
@@ -372,6 +383,8 @@ class MainWindow():
             self.append_info("端口不存在 或 串口波特率有误 或 数采地址有误 或 串口没有回复，请检查", 'red')
             self.stop_polling()
             return False
+
+        self.controller.write_config(baudrate, collector_addr)
 
         return True
 

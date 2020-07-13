@@ -7,7 +7,7 @@ from util import *
 import math
 
 
-class DataCollectorModel():
+class Model():
     """
     MainWindow 数据模型
     """
@@ -108,32 +108,27 @@ class DataCollectorModel():
         all_data = ""
         n_machine = self.machine_num()  # 先查询机器数量
         query_times = math.ceil(n_machine / 8)  # 一次最多查 8 台
-        last_query_num = n_machine - (query_times - 1) * 8  # 最后一次查询机器数量
         start_n = 2  # 开始字节位置
-        for i in range(1, query_times + 1):
-            if i == query_times:
-
+        rest_machine = n_machine
+        for i in range(query_times):
+            if n_machine - 8 > 0:
                 #
-                # 最后一次查询
+                # 说明后面还需要查询
                 #
-                start_n += 32
-                number_hex = "{:#06X}".format(last_query_num * 4)[2:]  # 寄存器数量
-            else:
-
-                #
-                # 不是最后一次查询
-                #
-                if start_n == 2:
-                    # 第一次查询
-                    start_n = 2
-                else:
-                    start_n += 32
+                rest_machine -= 8
                 number_hex = "{:#06X}".format(32)[2:]  # 32 个寄存器
+
+            else:
+                #
+                # 这是最后一次查询了
+                #
+                number_hex = "{:#06X}".format(rest_machine * 4)[2:]
 
             #
             # 向控制器发送数据，允许有空格
             #
             start_addr = "{:#06X}".format(start_n)[2:]  # 查询起始地址
+            start_n += 8
             data = self.write("03" + start_addr + number_hex, 0.2)
             if data != "":
                 #
@@ -145,6 +140,28 @@ class DataCollectorModel():
                 all_data += data
             else:
                 return {}
+
+        # last_query_num = n_machine - (query_times - 1) * 8  # 最后一次查询机器数量
+        # for i in range(1, query_times + 1):
+        #     if i == query_times:
+        #
+        #         #
+        #         # 最后一次查询
+        #         #
+        #         start_n += 32
+        #         number_hex = "{:#06X}".format(last_query_num * 4)[2:]  # 寄存器数量
+        #     else:
+        #
+        #         #
+        #         # 不是最后一次查询
+        #         #
+        #         if start_n == 2:
+        #             # 第一次查询
+        #             start_n = 2
+        #         else:
+        #             start_n += 32
+        #         number_hex = "{:#06X}".format(32)[2:]  # 32 个寄存器
+
 
         return self.convert2dec(n_machine, all_data)
 
