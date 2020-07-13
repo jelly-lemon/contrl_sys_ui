@@ -48,7 +48,7 @@ class Model():
         #
         try:
             self.ser = serial.Serial(port, int(baud_rate), timeout=5)  # 开启com3口，波特率，超时
-
+            time.sleep(0.1)
             #
             # 保存串口信息到成员变量
             #
