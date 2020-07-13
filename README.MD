@@ -6,6 +6,7 @@ v1.3.1（2020/7/13）
 修复 BUG：
 - 修复读取成员数逻辑错误
 - 能够写入、读取配置
+- 修复第一次打开软件时总是读取不到串口（CPU 要等一下）
 
 打包命令：
 pyinstaller MainWindow.py  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/logo.ico --noconsole
