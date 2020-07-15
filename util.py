@@ -139,3 +139,65 @@ def des_descrypt(s: str) -> str:
         return ""
 
     return de
+
+def get_angle(data: str):
+    """
+    :param data:16进制字符串
+    :return:角度值，float
+    """
+    s = '{:016b}'.format(int(data, 16))
+
+
+    if s[0] == '0':
+        return ori2dec(s)
+    else:
+        t = ori2com(s)
+        return ori2dec(t)
+
+def ori2dec(bin_str: str):
+    """
+    将原码字符串 -> 十进制数值
+    :param bin_str:原码字符串
+    :return:十进制数值
+    """
+    # 如果为正数
+    if bin_str[0] == '0':
+        return int(bin_str, 2)
+    elif bin_str[0] == '1':
+        return -int(bin_str[1:], 2)
+
+def ori2com(ori_str: str):
+    """
+    将原码字符串 -> 补码字符串
+    :param ori_str:原码字符串
+    :return:补码字符串
+    """
+    # 如果符号位为正，则原码与补码相同
+    if ori_str[0] == '0':
+        return ori_str
+    elif ori_str[0] == '1':
+        value_str = ""
+
+        # 数值位按位取反
+        for i in range(len(ori_str)):
+            if i == '1':
+                continue
+            if ori_str[i] == '0':
+                value_str += '1'
+            elif ori_str[i] == '1':
+                value_str += '0'
+
+        # 数值位加 1
+        n = int(value_str, 2) + 1
+        com_str = bin(n)[2:]
+        if len(com_str) >= len(ori_str):
+            # 说明进位到符号位了
+            com_str = '0' + com_str[1:]
+        else:
+            # 0不够，中间填充0
+            n = len(ori_str) - len(com_str) - 1
+            for i in range(n):
+                com_str = '0' + com_str
+            com_str = '1' + com_str
+
+        return com_str

@@ -1,12 +1,26 @@
 # 软件截图
+v1.0 的截图：  
 ![image](https://github.com/jelly-lemon/contrl_sys_ui/blob/UseTableView/img/%E4%B8%BB%E7%95%8C%E9%9D%A2.png)
 
-# 更新说明
-v1.3.1（2020/7/13）
+
+
+# 版本更新说明
+v1.3.2（2020/7/15）   
+修复 BUG：
+- 表格单元内容过多时显示不全的问题
+- 发送控制代码抛出句柄无效的问题
+
+新功能：
+- 输出框能够右键菜单清屏
+- 增加一键减少、增加防风角度 
+
+v1.3.1（2020/7/13）   
 修复 BUG：
 - 修复读取成员数逻辑错误
-- 能够写入、读取配置
 - 修复第一次打开软件时总是读取不到串口（CPU 要等一下）
+   
+新功能：
+- 能够写入、读取配置
 
 打包命令：
 pyinstaller MainWindow.py  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/logo.ico --noconsole
@@ -28,6 +42,6 @@ pyinstaller MainWindow.py -p=C:\Users\Administrator\AppData\Local\Programs\Pytho
 ges\shiboken2 -F  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/app.ico --noconsole
 
 # 重要软件包版本
-Python         3.6.8（32 位）
+Python         3.6.8（32 位）   
 PySide2        5.12.5
 

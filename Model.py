@@ -3,6 +3,7 @@ import time
 import serial
 from serial import SerialException
 
+import util
 from util import *
 import math
 
@@ -17,6 +18,14 @@ class Model():
         self.port = None
         self.collector_addr = None
         self.baud_rate = None
+
+    def close_ser(self):
+        """
+        关闭串口
+        :return:
+        """
+        if self.ser != None:
+            self.ser.close()
 
     def get_member(self) -> int:
         """
@@ -129,6 +138,9 @@ class Model():
             #
             start_addr = "{:#06X}".format(start_n)[2:]  # 查询起始地址
             start_n += 8
+            #
+            # 每次等待 0.2s，等待返回数据
+            #
             data = self.write("03" + start_addr + number_hex, 0.2)
             if data != "":
                 #
@@ -179,10 +191,17 @@ class Model():
             machine_data.append(int(data[start:start + 4], 16))
             machine_data.append(int(data[start + 4:start + 8], 16))
             machine_data.append(int(data[start + 8:start + 12], 16))
-            machine_data.append(int(data[start + 12:start + 16], 16))
+            t = data[start + 12:start + 16]
+            angle = util.get_angle(t) / 100
+            angle = "{:.2f}".format(angle)
+            # print("十六进制：", t, "角度：", angle)
+
+            machine_data.append(angle)
+
             new_data[i] = machine_data
 
         return new_data
+
 
     def machine_num(self) -> int:
         """
@@ -219,18 +238,21 @@ class Model():
         :return:
         """
         self.ser.flushInput()  # 清空输入缓存（向串口发送）
+        self.ser.flushOutput()
 
         #
         # 向控制器发送数据
         #
         send_data = get_crc16(self.collector_addr + content)
+
         self.ser.write(bytes.fromhex(send_data))
         time.sleep(sleep)  # 程序休眠 x 秒，等待控制器返回数据
 
         #
         # 返回接收缓存字节数
-        #
+
         num = self.ser.inWaiting()
+        #
         if num:
             data = self.ser.read(num)
             if is_crc16(data.hex()):

@@ -279,6 +279,10 @@
     <addaction name="snow_removal"/>
     <addaction name="separator"/>
     <addaction name="clean_board"/>
+    <addaction name="separator"/>
+    <addaction name="sub_angle"/>
+    <addaction name="separator"/>
+    <addaction name="add_angle"/>
    </widget>
    <widget class="QMenu" name="menu_help">
     <property name="title">
@@ -322,6 +326,16 @@
   <action name="about">
    <property name="text">
     <string>关于</string>
+   </property>
+  </action>
+  <action name="sub_angle">
+   <property name="text">
+    <string>减少防风角度</string>
+   </property>
+  </action>
+  <action name="add_angle">
+   <property name="text">
+    <string>增加防风角度</string>
    </property>
   </action>
  </widget>

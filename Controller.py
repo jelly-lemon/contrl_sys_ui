@@ -20,19 +20,25 @@ class Controller:
         :param append_info:界面更新函数
         :return:无
         """
-        code = "00 01"
+        code = 1
         if cmd == "一键重启":
-            code = "00 01"
+            code = 1
         elif cmd == "一键上锁":
-            code = "00 09"
+            code = 9
         elif cmd == "一键解锁":
-            code = "00 0A"
+            code = 10
         elif cmd == "一键防风":
-            code = "00 06"
+            code = 6
         elif cmd == "一键除雪":
-            code = "00 07"
+            code = 7
         elif cmd == "一键清洗":
-            code = "00 08"
+            code = 8
+        elif cmd == "减少防风角度":
+            code = 11
+        elif cmd == "增加防风角度":
+            code = 12
+
+        code = "{:04x}".format(code).upper()
         result = self.dataCollectorModel.one_key(code)
         if result:
             append_info("%s成功" % cmd, 'green')
@@ -46,6 +52,13 @@ class Controller:
         self.last_port_list = None
         self.dataCollectorModel = Model()
 
+    def close_ser(self):
+        """
+        关闭串口
+        :return:
+        """
+        self.dataCollectorModel.close_ser()
+
     def get_member(self, update_member):
         """
         获取机器数量，并更新界面
@@ -55,7 +68,7 @@ class Controller:
         member = self.dataCollectorModel.get_member()
         update_member(member)
 
-    def send_control_code(self, machine_number, code, append_info):
+    def send_control_code(self, machine_number, code, append_info, recover_polling):
         """
         发送控制代码
         :param machine_number:机器编号，十进制
@@ -63,8 +76,13 @@ class Controller:
         :param append_info: 回调函数
         :return:无
         """
-        self.dataCollectorModel.send_control_code(machine_number, code)
-        append_info("向 %d 号控制器发送控制代码 %s 成功" % (machine_number, code), 'green')
+        if self.dataCollectorModel.send_control_code(machine_number, code):
+            append_info("向 %d 号控制器发送控制代码 %s 成功" % (machine_number, code), 'green')
+        else:
+            append_info("向 %d 号控制器发送控制代码 %s 失败" % (machine_number, code), 'red')
+
+        recover_polling()   # 恢复轮询
+
 
     def update_serial(self, port: str, baud_rate: str, collector_addr: str, ):
         """

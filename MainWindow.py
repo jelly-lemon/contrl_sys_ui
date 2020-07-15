@@ -1,11 +1,9 @@
-import os
 import threading
 from functools import partial
 from threading import Timer
 
-from PySide2.QtCore import QModelIndex, QSize
-from PySide2.QtWidgets import QSplitter, QHeaderView, QApplication, QInputDialog, QDialog, QLabel, QVBoxLayout, \
-    QLineEdit, QHBoxLayout, QPushButton, QSizePolicy
+from PySide2.QtCore import QModelIndex
+from PySide2.QtWidgets import QSplitter, QHeaderView, QApplication, QAction
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import Qt, QColor, QTextCursor, QIcon
 import util
@@ -86,14 +84,17 @@ class MainWindow():
         self.ui.wind_bread.triggered.connect(partial(self.one_key_timer, self.ui.wind_bread.text()))
         self.ui.snow_removal.triggered.connect(partial(self.one_key_timer, self.ui.snow_removal.text()))
         self.ui.clean_board.triggered.connect(partial(self.one_key_timer, self.ui.clean_board.text()))
+        self.ui.sub_angle.triggered.connect(partial(self.one_key_timer, self.ui.sub_angle.text()))
+        self.ui.add_angle.triggered.connect(partial(self.one_key_timer, self.ui.add_angle.text()))
         self.ui.about.triggered.connect(self.show_about)
+
 
     def init_interval_combobox(self):
         """
         初始化轮询时间下拉列表框
         :return: 无
         """
-        interval_list = ['10 s', '15 s', '30 s', '60 s']
+        interval_list = ['5 s', '10 s', '15 s', '30 s', '60 s']
         self.ui.combobox_interval.addItems(interval_list)
 
     def init_splitter(self):
@@ -124,13 +125,23 @@ class MainWindow():
         """
         self.ui.output_edit.setReadOnly(True)  # 禁止编辑
 
+        #
+        # 添加右键菜单
+        #
+        self.ui.output_edit.setContextMenuPolicy(Qt.ActionsContextMenu) # 允许右键菜单
+        send_option = QAction(self.ui.output_edit)         # 具体菜单项
+        send_option.setText("清除内容")
+        send_option.triggered.connect(self.ui.output_edit.clear)  # 点击菜单中的具体选项执行的函数
+
+
     def init_table(self):
         """
         初始化表格样式
         :return:无
         """
         self.ui.tableView.verticalHeader().setVisible(False)  # 隐藏垂直表头
-        self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据内容调整表格宽度
+        #self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据表头调整表格宽度
+        self.ui.tableView.resizeColumnsToContents() # 根据内容调整列宽
         self.ui.tableView.clicked.connect(self.handle_table_click)  # 鼠标左键点击事件
 
     def start_scanning(self):
@@ -252,21 +263,12 @@ class MainWindow():
             #
             if self.isPolling:
                 self.stop_polling()
-                recover = True
-            else:
-                recover = False
 
             #
             # 根据行号、列号计算出机器编号，然后显示修改窗口
             #
             machine_number = self.controller.get_machine_number(i, j)
             self.show_modify_dialog(machine_number)
-
-            #
-            # 如果之前停止了轮询，这里就要恢复轮询
-            #
-            if recover:
-                self.start_polling()
 
     def is_editable(self, i, j) -> bool:
         """
@@ -358,6 +360,7 @@ class MainWindow():
             #
             if self.polling_timer is not None and self.polling_timer.is_alive():
                 util.stop_thread(self.polling_timer)
+                self.controller.close_ser()
 
     def next_polling(self):
         """
@@ -411,26 +414,39 @@ class MainWindow():
         """
         input_dial = ModifyDialog("发送控制代码", "%d 号控制器：" % machine_number)
         if input_dial.exec_():
-            code = input_dial.textValue()
-            cmd = ('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'a')
-            if code not in cmd:
-                info = "输入的控制代码有误！控制代码只能是其中一个：" + str(cmd)
+            code = int(input_dial.textValue())
+            if 1 <= code <= 99:
+                #
+                # 发送控制代码
+                #
+                if self.update_serial():
+                    self.send_code(machine_number, code)  # 启动子线程，发送控制代码
+
+            else:
+                #
+                # 提示输入有误
+                #
+                info = "输入的控制代码有误！控制代码只能是：1~99"
                 dial = InfoDialog("提示", info)
                 dial.exec_()  # 进入事件循环
-            else:
-                self.send_code(machine_number, code)  # 启动子线程，发送控制代码
 
-    def send_code(self, machine_number: int, code: str) -> None:
+    def send_code(self, machine_number: int, code: int) -> None:
         """
         发送控制代码
         :param machine_number:机器编号
         :param code:控制代码
         :return:无
         """
+        code = '{:04X}'.format(code)    # 十进制控制代码转十六进制
+
+        #
+        # 让子线程来完成发送控制代码任务
+        #
         t = threading.Thread(target=self.controller.send_control_code,
-                             args=(machine_number, code, self.append_info))
-        t.setDaemon(True)  # 设置为守护线程，主线程退出时子线程强制退出
-        t.start()  # 子线程执行
+                             args=(machine_number, code, self.append_info, self.start_polling))
+        t.setDaemon(True)   # 设置为守护线程，主线程退出时子线程强制退出
+        t.start()           # 子线程执行
+
 
 
 if __name__ == '__main__':
