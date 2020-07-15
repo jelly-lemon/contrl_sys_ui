@@ -210,7 +210,7 @@ class Controller:
         :return:读取到的数据
         """
         try:
-            file = open("./config.txt", mode="r", encoding="utf-8")
+            file = open("./other/config.txt", mode="r", encoding="utf-8")
             s = file.readline()
             if s != "":
                 return s.split()
@@ -226,7 +226,7 @@ class Controller:
         :param address: 数采地址
         :return: 是否写入成功
         """
-        file_path = "./config.txt"
+        file_path = "./other/config.txt"
         if file_path != "":
             file = open(file_path, mode="w+", encoding="utf-8")
             if file.write(baudrate + " " + address):

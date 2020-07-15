@@ -132,6 +132,8 @@ class MainWindow():
         send_option = QAction(self.ui.output_edit)         # 具体菜单项
         send_option.setText("清除内容")
         send_option.triggered.connect(self.ui.output_edit.clear)  # 点击菜单中的具体选项执行的函数
+        self.ui.output_edit.addAction(send_option)
+
 
 
     def init_table(self):

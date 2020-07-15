@@ -101,7 +101,7 @@ class LoginDialog(QDialog):
         :param key:产品密钥
         :return:无
         """
-        key_file_path = "./key.txt"
+        key_file_path = "./other/key.txt"
         key_file = open(key_file_path, "w+")  # 没有文件会自动创建
         key_in_file = key_file.readline()  # 先读取
 
@@ -118,7 +118,7 @@ class LoginDialog(QDialog):
         读取产品密钥
         :return:产品密钥字符串
         """
-        key_file_path = "./key.txt"  # 先判断有没有文件
+        key_file_path = "./other/key.txt"  # 先判断有没有文件
         if os.path.exists(key_file_path):
             key_file = open(key_file_path, "r")
             return key_file.readline()  # 先读取
