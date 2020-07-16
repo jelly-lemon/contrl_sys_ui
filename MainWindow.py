@@ -3,7 +3,7 @@ from functools import partial
 from threading import Timer
 
 from PySide2.QtCore import QModelIndex
-from PySide2.QtWidgets import QSplitter, QHeaderView, QApplication, QAction
+from PySide2.QtWidgets import QSplitter, QApplication, QAction
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import Qt, QColor, QTextCursor, QIcon
 import util
@@ -88,7 +88,6 @@ class MainWindow():
         self.ui.add_angle.triggered.connect(partial(self.one_key_timer, self.ui.add_angle.text()))
         self.ui.about.triggered.connect(self.show_about)
 
-
     def init_interval_combobox(self):
         """
         初始化轮询时间下拉列表框
@@ -128,13 +127,11 @@ class MainWindow():
         #
         # 添加右键菜单
         #
-        self.ui.output_edit.setContextMenuPolicy(Qt.ActionsContextMenu) # 允许右键菜单
-        send_option = QAction(self.ui.output_edit)         # 具体菜单项
+        self.ui.output_edit.setContextMenuPolicy(Qt.ActionsContextMenu)  # 允许右键菜单
+        send_option = QAction(self.ui.output_edit)  # 具体菜单项
         send_option.setText("清除内容")
         send_option.triggered.connect(self.ui.output_edit.clear)  # 点击菜单中的具体选项执行的函数
         self.ui.output_edit.addAction(send_option)
-
-
 
     def init_table(self):
         """
@@ -142,8 +139,8 @@ class MainWindow():
         :return:无
         """
         self.ui.tableView.verticalHeader().setVisible(False)  # 隐藏垂直表头
-        #self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据表头调整表格宽度
-        self.ui.tableView.resizeColumnsToContents() # 根据内容调整列宽
+        # self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据表头调整表格宽度
+        self.ui.tableView.resizeColumnsToContents()  # 根据内容调整列宽
         self.ui.tableView.clicked.connect(self.handle_table_click)  # 鼠标左键点击事件
 
     def start_scanning(self):
@@ -339,9 +336,6 @@ class MainWindow():
             # self.append_info("开始下一次轮询")
             self.next_polling()  # 准备下一次轮询
 
-
-
-
     def stop_polling(self):
         """
         立即停止轮询
@@ -439,16 +433,15 @@ class MainWindow():
         :param code:控制代码
         :return:无
         """
-        code = '{:04X}'.format(code)    # 十进制控制代码转十六进制
+        code = '{:04X}'.format(code)  # 十进制控制代码转十六进制
 
         #
         # 让子线程来完成发送控制代码任务
         #
         t = threading.Thread(target=self.controller.send_control_code,
                              args=(machine_number, code, self.append_info, self.start_polling))
-        t.setDaemon(True)   # 设置为守护线程，主线程退出时子线程强制退出
-        t.start()           # 子线程执行
-
+        t.setDaemon(True)  # 设置为守护线程，主线程退出时子线程强制退出
+        t.start()  # 子线程执行
 
 
 if __name__ == '__main__':

@@ -81,8 +81,7 @@ class Controller:
         else:
             append_info("向 %d 号控制器发送控制代码 %s 失败" % (machine_number, code), 'red')
 
-        recover_polling()   # 恢复轮询
-
+        recover_polling()  # 恢复轮询
 
     def update_serial(self, port: str, baud_rate: str, collector_addr: str, ):
         """
