@@ -24,7 +24,7 @@ class Model():
         关闭串口
         :return:
         """
-        if self.ser != None:
+        if self.ser != None and self.ser.isOpen():
             self.ser.close()
 
     def get_member(self) -> int:
@@ -32,7 +32,7 @@ class Model():
         获取机器数量，必须在子线程中完成，因为有耗时操作
         :return:机器数量
         """
-        n_machine = 0
+        n_machine = -1
         data = self.write("03 0000 0001", 0.1)
         if data != "":
             n_machine = int(data[6:10], 16)
@@ -49,25 +49,29 @@ class Model():
         #
         # 先关闭之前的
         #
-        if self.ser != None:
-            self.ser.close()
+        self.close_ser()
 
         #
         # 再新建
         #
-        try:
-            self.ser = serial.Serial(port, int(baud_rate), timeout=5)  # 开启com3口，波特率，超时
-            time.sleep(0.1)
-            #
-            # 保存串口信息到成员变量
-            #
-            self.port = port
-            self.collector_addr = collector_addr
-            self.baud_rate = baud_rate
-        except SerialException:
-            return False  # 创建失败
+        for i in range(3):
+            try:
+                self.ser = serial.Serial(port, int(baud_rate), timeout=5)  # 开启com3口，波特率，超时
+                time.sleep(0.1)
+                #
+                # 保存串口信息到成员变量
+                #
+                if self.ser.isOpen():
+                    self.port = port
+                    self.collector_addr = collector_addr
+                    self.baud_rate = baud_rate
 
-        return self.test_ser()  # 测试一下能否接收数据
+                    return self.test_ser()  # 测试一下能否接收数据
+
+            except SerialException:
+                pass
+
+        return False
 
     def test_ser(self):
         """
@@ -80,12 +84,32 @@ class Model():
 
         return False
 
-    def one_key(self, instruction: str) -> bool:
+    def one_key(self, cmd: str) -> bool:
         """
         一键操作
         :param instruction:命令
         :return:
         """
+        code = 1
+        if cmd == "一键重启":
+            code = 1
+        elif cmd == "一键上锁":
+            code = 9
+        elif cmd == "一键解锁":
+            code = 10
+        elif cmd == "一键防风":
+            code = 6
+        elif cmd == "一键除雪":
+            code = 7
+        elif cmd == "一键清洗":
+            code = 8
+        elif cmd == "减少防风角度":
+            code = 11
+        elif cmd == "增加防风角度":
+            code = 12
+
+        instruction = "{:04x}".format(code).upper()
+
         if self.ser is None:
             return False
         data = self.write("06 01FF" + instruction, 0.1)
@@ -94,14 +118,14 @@ class Model():
 
         return False
 
-    def send_control_code(self, machine_number: int, code: str) -> bool:
+    def send_control_code(self, machine_number: str, code: str) -> bool:
         """
         给控制器发送控制代码
         :param machine_number:机器编号，10 进制
         :param code:控制代码，16 进制
         :return:无
         """
-        machine_number = "{:04X}".format((machine_number-1)*4 + 3)
+        machine_number = "{:04X}".format((int(machine_number) - 1) * 4 + 3)
         code = "{:04X}".format(int(code, 16))  # 默认输入是 16 进制
         data = self.write("06" + machine_number + code, 0.1)
         if data != "":
@@ -109,7 +133,7 @@ class Model():
 
         return False
 
-    def get_table_data(self) -> dict:
+    def get_table_data(self):
         """
         获取表格数据
         :return:表格数据
@@ -151,31 +175,12 @@ class Model():
                 data = data[6:-4]
                 all_data += data
             else:
-                return {}
+                return None
 
-        # last_query_num = n_machine - (query_times - 1) * 8  # 最后一次查询机器数量
-        # for i in range(1, query_times + 1):
-        #     if i == query_times:
-        #
-        #         #
-        #         # 最后一次查询
-        #         #
-        #         start_n += 32
-        #         number_hex = "{:#06X}".format(last_query_num * 4)[2:]  # 寄存器数量
-        #     else:
-        #
-        #         #
-        #         # 不是最后一次查询
-        #         #
-        #         if start_n == 2:
-        #             # 第一次查询
-        #             start_n = 2
-        #         else:
-        #             start_n += 32
-        #         number_hex = "{:#06X}".format(32)[2:]  # 32 个寄存器
+        if all_data is not None:
+            return self.convert2dec(n_machine, all_data)
 
-
-        return self.convert2dec(n_machine, all_data)
+        return None
 
     def convert2dec(self, n_machine, data) -> dict:
         """
@@ -201,7 +206,6 @@ class Model():
             new_data[i] = machine_data
 
         return new_data
-
 
     def machine_num(self) -> int:
         """
@@ -244,19 +248,16 @@ class Model():
         # 向控制器发送数据
         #
         send_data = get_crc16(self.collector_addr + content)
-
         self.ser.write(bytes.fromhex(send_data))
         time.sleep(sleep)  # 程序休眠 x 秒，等待控制器返回数据
 
         #
         # 返回接收缓存字节数
-
-        num = self.ser.inWaiting()
         #
+        num = self.ser.inWaiting()
         if num:
             data = self.ser.read(num)
             if is_crc16(data.hex()):
                 return data.hex().upper()
 
         return ""
-

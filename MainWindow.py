@@ -1,19 +1,22 @@
-import threading
 from functools import partial
 from threading import Timer
 
-from PySide2.QtCore import QModelIndex
-from PySide2.QtWidgets import QSplitter, QApplication, QAction
+import playsound
+from PySide2.QtCore import QModelIndex, Slot, QObject
+from PySide2.QtWidgets import QSplitter, QApplication, QAction, QHeaderView
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import Qt, QColor, QTextCursor, QIcon
 import util
-from Controller import Controller
+from Helper import Helper
 from InfoDialog import InfoDialog
 from LoginDialog import LoginDialog
 from ModifyDialog import ModifyDialog
+from WindowSignal import message
+from SerialWorker import SerialWorker
+from CheckWorker import CheckWorker
 
 
-class MainWindow():
+class MainWindow(QObject):
     """
     控制系统的主窗口
     """
@@ -25,11 +28,10 @@ class MainWindow():
         #
         # 成员变量
         #
+        super().__init__()
         self.isPolling = False  # 是否在轮询中
-        self.controller = Controller()  # 控制器
+        self.helper = Helper()  # 控制器
         self.polling_timer = None  # 轮询定时器，设成成员变量是为了能够取消定时器
-        self.scanning_timer = None  # 扫描定时器，设成成员变量是为了能够取消定时器
-        self.first_scanning = True  # 第一次扫描
 
         #
         # 初始化界面
@@ -41,16 +43,8 @@ class MainWindow():
         self.init_table()  # 初始化表格
         self.init_output_edit()  # 初始化输出信息的窗口
         self.init_menu_bar()  # 初始化菜单
-        self.init_port()  # 初始化端口列表
 
         self.ui.btn_submit.clicked.connect(self.start_polling)  # 绑定点击事件
-
-    def init_port(self):
-        """
-        初始化端口
-        :return:无
-        """
-        self.start_scanning()  # 开始扫描端口
 
     def init_window(self):
         """
@@ -68,7 +62,7 @@ class MainWindow():
         #
         # 读取配置文件
         #
-        baudrate, address = self.controller.read_config()
+        baudrate, address = self.helper.read_config()
         if baudrate != "" and address != "":
             self.ui.edit_baudrate.setText(baudrate)
             self.ui.edit_addr.setText(address)
@@ -78,14 +72,14 @@ class MainWindow():
         初始化菜单栏
         :return: 无
         """
-        self.ui.restart.triggered.connect(partial(self.one_key_timer, self.ui.restart.text()))
-        self.ui.lock.triggered.connect(partial(self.one_key_timer, self.ui.lock.text()))
-        self.ui.unlock1.triggered.connect(partial(self.one_key_timer, self.ui.unlock1.text()))
-        self.ui.wind_bread.triggered.connect(partial(self.one_key_timer, self.ui.wind_bread.text()))
-        self.ui.snow_removal.triggered.connect(partial(self.one_key_timer, self.ui.snow_removal.text()))
-        self.ui.clean_board.triggered.connect(partial(self.one_key_timer, self.ui.clean_board.text()))
-        self.ui.sub_angle.triggered.connect(partial(self.one_key_timer, self.ui.sub_angle.text()))
-        self.ui.add_angle.triggered.connect(partial(self.one_key_timer, self.ui.add_angle.text()))
+        self.ui.restart.triggered.connect(partial(self.one_key, self.ui.restart.text()))
+        self.ui.lock.triggered.connect(partial(self.one_key, self.ui.lock.text()))
+        self.ui.unlock1.triggered.connect(partial(self.one_key, self.ui.unlock1.text()))
+        self.ui.wind_bread.triggered.connect(partial(self.one_key, self.ui.wind_bread.text()))
+        self.ui.snow_removal.triggered.connect(partial(self.one_key, self.ui.snow_removal.text()))
+        self.ui.clean_board.triggered.connect(partial(self.one_key, self.ui.clean_board.text()))
+        self.ui.sub_angle.triggered.connect(partial(self.one_key, self.ui.sub_angle.text()))
+        self.ui.add_angle.triggered.connect(partial(self.one_key, self.ui.add_angle.text()))
         self.ui.about.triggered.connect(self.show_about)
 
     def init_interval_combobox(self):
@@ -139,37 +133,9 @@ class MainWindow():
         :return:无
         """
         self.ui.tableView.verticalHeader().setVisible(False)  # 隐藏垂直表头
-        # self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据表头调整表格宽度
+        self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据表头调整表格宽度
         self.ui.tableView.resizeColumnsToContents()  # 根据内容调整列宽
         self.ui.tableView.clicked.connect(self.handle_table_click)  # 鼠标左键点击事件
-
-    def start_scanning(self):
-        """
-        开始扫描端口
-        :return:无
-        """
-        self.scanning_timer = Timer(0, self.scanning_port)
-        self.scanning_timer.setName("scanning_start_timer")
-        self.scanning_timer.setDaemon(True)  # 设置为守护线程，主线程退出时子线程强制退出
-        self.scanning_timer.start()
-
-    def scanning_port(self):
-        """
-        扫描端口
-        :return:无
-        """
-        self.controller.get_port_list(self.update_port)  # 执行本次扫描任务
-        self.next_scanning()  # 准备下一次扫描线程
-
-    def next_scanning(self):
-        """
-        准备下一次扫描端口
-        :return: 无
-        """
-        self.scanning_timer = Timer(0.5, self.scanning_port)
-        self.scanning_timer.setName("scanning_timer")
-        self.scanning_timer.setDaemon(True)
-        self.scanning_timer.start()
 
     def show_about(self):
         """
@@ -179,26 +145,26 @@ class MainWindow():
         dial = InfoDialog("关于", "四川近日点新能源科技有限公司\n联系电话：028-xxxxxxx")
         dial.exec_()  # 进入事件循环，不关闭不会退出循环
 
-    def one_key_timer(self, cmd):
-        """
-        用 Timer 开启一个子线程来完成任务
-        :param cmd:命令
-        :return:无
-        """
-        t = Timer(0, self.one_key, [cmd])
-        t.setDaemon(True)
-        t.start()
+    def get_serial_info(self):
+        com_port = self.ui.box_com_port.currentText()  # 端口号
+        collector_addr = self.ui.edit_addr.text()  # 数采地址
+        baud_rate = self.ui.edit_baudrate.text()  # 波特率
+        return com_port, collector_addr, baud_rate
 
-    def one_key(self, cmd):
+    def one_key(self, option):
         """
         一键命令
         :param cmd:命令
         :return:无
         """
-        self.update_serial()  # 更新串口对象
-        self.controller.one_key(cmd, self.append_info)  # 发送命令
+        # self.update_serial()
+        if self.isPolling is False:
+            self.append_info("请先开始轮询，然后再开始一键操作！", 'red')
+        else:
+            message.append({'cmd': 'one_key', 'option': "%s" % option})
 
-    def update_member(self, member):
+    @Slot(int)
+    def update_member(self, member: int):
         """
         更新成员数
         :param member:成员数
@@ -206,25 +172,27 @@ class MainWindow():
         """
         self.ui.label_member.setText(str(member))
 
-    def update_port(self, port_name_list: list):
+    @Slot(str)
+    def update_port(self, port_name_list: str):
         """
         初始化下拉列表框
         :return:无
         """
-        # 扫描端口
+        port_name_list = eval(port_name_list)
         self.ui.box_com_port.clear()
         self.ui.box_com_port.addItems(port_name_list)
         if len(port_name_list) > 0:
             self.append_info("共扫描到 %d 个串口设备：%s" % (len(port_name_list), port_name_list))
             self.ui.btn_submit.setEnabled(True)  # 可以轮询
         else:
-            self.append_info("未检测到任何串口设备，请检查连接是否正常", 'red')
+            self.append_info('未检测到任何串口设备，请检查连接是否正常', 'red')
             self.ui.btn_submit.setEnabled(False)  # 禁止轮询
 
-    def append_info(self, info: str, color: str = 'black'):
+    @Slot(str, str)
+    def append_info(self, text: str, color: str = 'black'):
         """
-        输出框追加信息信息
-        :param info:需要显示的信息
+        追加信息到输出狂
+        :param info:信息，字典字符串
         :return:
         """
         black = QColor(0, 0, 0)
@@ -239,7 +207,7 @@ class MainWindow():
         # 使用指定颜色追加文本，然后恢复为黑色
         #
         self.ui.output_edit.setTextColor(c)
-        self.ui.output_edit.append(util.get_time() + " " + info)  # 显示文本
+        self.ui.output_edit.append(util.get_time() + " " + text)  # 显示文本
         self.ui.output_edit.setTextColor(black)
         self.ui.output_edit.moveCursor(QTextCursor.End)  # 输出信息后滚动到最后
 
@@ -260,14 +228,23 @@ class MainWindow():
             #
             # 如果在轮询的话，立即停止，并标记需要恢复
             #
-            if self.isPolling:
-                self.stop_polling()
+            # recover = False
+            #
+            # if self.isPolling:
+            #     self.stop_polling()
+            #     recover = True
 
             #
             # 根据行号、列号计算出机器编号，然后显示修改窗口
             #
-            machine_number = self.controller.get_machine_number(i, j)
-            self.show_modify_dialog(machine_number)
+            machine_number = self.helper.get_machine_number(i, j)
+            if self.isPolling is False:
+                self.append_info("请先开始轮询，再发送控制代码！", 'red')
+            else:
+                self.show_modify_dialog(machine_number)
+
+            # if recover is True:
+            #     self.start_polling()
 
     def is_editable(self, i, j) -> bool:
         """
@@ -305,36 +282,31 @@ class MainWindow():
             self.isPolling = True
             self.ui.btn_submit.setText("停止轮询")
             self.set_enable(False)  # 禁止编辑
-
-            #
-            # 开始轮询
-            #
-            self.polling_timer = Timer(0, self.poling)
-            self.polling_timer.setName("polling_start_timer")
-            self.polling_timer.setDaemon(True)
+            self.update_serial()
             self.append_info("开始轮询")
-            self.polling_timer.start()
-
+            self.polling()
 
         else:
             self.stop_polling()
 
-    def poling(self):
+    def update_serial(self):
+        com_port, collector_addr, baud_rate = self.get_serial_info()
+        message.append({'cmd': 'update_serial', 'com_port': com_port, 'collector_addr': collector_addr,
+                        'baud_rate': baud_rate})
+
+    def polling(self):
         """
         轮询查询
         :return:无
         """
+        #
+        # 更新界面
+        #
+        message.append({'cmd': 'member'})
+        message.append({'cmd': 'table'})
+        message.append({'cmd': 'wind_speed'})
 
-        if self.update_serial():
-            #
-            # 更新界面
-            #
-            self.controller.get_table_data(self.update_table, self.update_member, self.append_info)  # 更新表格
-            # self.append_info("表格更新完成")
-            self.controller.get_wind_speed(self.update_wind_speed)  # 更新风速
-            # self.append_info("风速更新完成")
-            # self.append_info("开始下一次轮询")
-            self.next_polling()  # 准备下一次轮询
+        self.next_polling()  # 准备下一次轮询
 
     def stop_polling(self):
         """
@@ -351,12 +323,20 @@ class MainWindow():
             self.isPolling = False
             self.append_info("结束轮询")  # 信息台输出结束信息
 
+            self.close_serial()
             #
             # 强制停止子线程
             #
             if self.polling_timer is not None and self.polling_timer.is_alive():
                 util.stop_thread(self.polling_timer)
-                self.controller.close_ser()
+
+    def close_serial(self):
+        """
+        发命令关闭串口
+        :return:
+        """
+        msg = {"cmd": 'close_serial'}
+        message.append(msg)
 
     def next_polling(self):
         """
@@ -364,44 +344,40 @@ class MainWindow():
         :return:无
         """
         interval = int(self.ui.combobox_interval.currentText()[:-2])  # 获取间隔时间下拉框的值
-        self.polling_timer = Timer(interval, self.poling)
+        self.polling_timer = Timer(interval, self.polling)
         self.polling_timer.setName("polling_timer")
         self.polling_timer.setDaemon(True)
         self.polling_timer.start()
 
-    def update_serial(self) -> bool:
-        """
-        更新串口对象
-        :return: 无
-        """
-        com_port = self.ui.box_com_port.currentText()  # 端口号
-        collector_addr = self.ui.edit_addr.text()  # 数采地址
-        baudrate = self.ui.edit_baudrate.text()  # 波特率
-
-        if self.controller.update_serial(com_port, baudrate, collector_addr) is False:
-            self.append_info("端口不存在 或 串口波特率有误 或 数采地址有误 或 串口没有回复，请检查", 'red')
-            self.stop_polling()
-            return False
-
-        self.controller.write_config(baudrate, collector_addr)
-
-        return True
-
-    def update_wind_speed(self, wind_speed):
+    @Slot(str)
+    def update_wind_speed(self, wind_speed: str):
         """
         更新风速
         :param wind_speed:风速值
         :return: 无
         """
-        self.ui.label_wind_speed.setText(str(wind_speed) + " m/s")
+        self.ui.label_wind_speed.setText(wind_speed + " m/s")
 
-    def update_table(self, table_model):
+    @Slot(str)
+    def update_table(self, table_data: str):
         """
         更新表格数据
-        :param table_model:表格数据模型
+        :param table_data:表格数据
         :return:无
         """
+        table_model, error_number = self.helper.get_table_model(table_data)
+        if error_number != "":
+            self.append_info("有异常机器编号：" + error_number)
+            self.play_error_sound()
+
         self.ui.tableView.setModel(table_model)
+
+    def play_error_sound(self):
+        """
+        播放警报
+        :return:
+        """
+        playsound.playsound("./other/bee.mp3")
 
     def show_modify_dialog(self, machine_number: int):
         """
@@ -415,8 +391,7 @@ class MainWindow():
                 #
                 # 发送控制代码
                 #
-                if self.update_serial():
-                    self.send_code(machine_number, code)  # 启动子线程，发送控制代码
+                self.send_control_code(machine_number, code)
 
             else:
                 #
@@ -426,22 +401,20 @@ class MainWindow():
                 dial = InfoDialog("提示", info)
                 dial.exec_()  # 进入事件循环
 
-    def send_code(self, machine_number: int, code: int) -> None:
+    def send_control_code(self, machine_number: int, code: int) -> None:
         """
         发送控制代码
         :param machine_number:机器编号
         :param code:控制代码
         :return:无
         """
+        msg = {}
+        msg["cmd"] = 'send_control_code'
         code = '{:04X}'.format(code)  # 十进制控制代码转十六进制
+        msg['machine_number'] = "%d" % machine_number
+        msg['code'] = "%s" % code
 
-        #
-        # 让子线程来完成发送控制代码任务
-        #
-        t = threading.Thread(target=self.controller.send_control_code,
-                             args=(machine_number, code, self.append_info, self.start_polling))
-        t.setDaemon(True)  # 设置为守护线程，主线程退出时子线程强制退出
-        t.start()  # 子线程执行
+        message.append(msg)
 
 
 if __name__ == '__main__':
@@ -459,4 +432,17 @@ if __name__ == '__main__':
         # main_window.ui.show()  # 按实际大小显示窗口
         main_window.ui.showMaximized()  # 全屏显示窗口，必须要用，不然不显示界面
 
-        app.exec_()  # 进入事件循环
+        #
+        # 子线程启动
+        #
+        serial_worker = SerialWorker(main_window)
+        serial_worker.start()
+        check_worker = CheckWorker(main_window)
+        check_worker.start()
+
+        #
+        # 关闭界面了，强制关闭子线程
+        #
+        if app.exec_() == 0:
+            serial_worker.terminate()
+            check_worker.terminate()

@@ -5,6 +5,12 @@ v1.0 的截图：
 
 
 # 版本更新说明
+v1.4（2020/7/21）
+重大更新：   
+- 使用生产者消费者模型，主线程往队列里面放命令，子线程从队列里面读命令。
+生产者是主线程，生产命令，子线程是消费者，根据命令执行，然后返回结果给主线程。
+
+
 v1.3.2（2020/7/15）   
 修复 BUG：
 - 表格单元内容过多时显示不全的问题
@@ -47,6 +53,6 @@ pyinstaller MainWindow.py -p=C:\Users\Administrator\AppData\Local\Programs\Pytho
 ges\shiboken2 -F  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/app.ico --noconsole
 
 # 重要软件包版本
-Python         3.6.8（32 位）   
-PySide2        5.12.5
+wmi     1.5.1 （获取 CPU 序列号）
+pyDes   2.0.1 （加密解密）    
 

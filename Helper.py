@@ -5,45 +5,12 @@ from PySide2.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
 from Model import Model
 import util
 import csv
-from playsound import playsound
 
 
-class Controller:
+class Helper:
     """
     MainWindow 界面类的控制器
     """
-
-    def one_key(self, cmd: str, append_info):
-        """
-        一键操作
-        :param cmd:命令
-        :param append_info:界面更新函数
-        :return:无
-        """
-        code = 1
-        if cmd == "一键重启":
-            code = 1
-        elif cmd == "一键上锁":
-            code = 9
-        elif cmd == "一键解锁":
-            code = 10
-        elif cmd == "一键防风":
-            code = 6
-        elif cmd == "一键除雪":
-            code = 7
-        elif cmd == "一键清洗":
-            code = 8
-        elif cmd == "减少防风角度":
-            code = 11
-        elif cmd == "增加防风角度":
-            code = 12
-
-        code = "{:04x}".format(code).upper()
-        result = self.dataCollectorModel.one_key(code)
-        if result:
-            append_info("%s成功" % cmd, 'green')
-        else:
-            append_info("%s失败" % cmd, 'red')
 
     def __init__(self):
         """
@@ -52,77 +19,17 @@ class Controller:
         self.last_port_list = None
         self.dataCollectorModel = Model()
 
-    def close_ser(self):
-        """
-        关闭串口
-        :return:
-        """
-        self.dataCollectorModel.close_ser()
+    def get_table_model(self, table_data: str):
 
-    def get_member(self, update_member):
-        """
-        获取机器数量，并更新界面
-        :param update_member:更新机器数量函数
-        :return:无
-        """
-        member = self.dataCollectorModel.get_member()
-        update_member(member)
+        data = eval(table_data)
 
-    def send_control_code(self, machine_number, code, append_info, recover_polling):
-        """
-        发送控制代码
-        :param machine_number:机器编号，十进制
-        :param code: 控制代码，16 进制
-        :param append_info: 回调函数
-        :return:无
-        """
-        if self.dataCollectorModel.send_control_code(machine_number, code):
-            append_info("向 %d 号控制器发送控制代码 %s 成功" % (machine_number, code), 'green')
-        else:
-            append_info("向 %d 号控制器发送控制代码 %s 失败" % (machine_number, code), 'red')
-
-        recover_polling()  # 恢复轮询
-
-    def update_serial(self, port: str, baud_rate: str, collector_addr: str, ):
-        """
-        更新串口实例
-        :param port:端口号
-        :param collector_addr:数字采集器地址
-        :return: 无
-        """
-        # 更新串口
-        return self.dataCollectorModel.update_serial(port, baud_rate, collector_addr)
-
-    def get_wind_speed(self, update_wind_speed):
-        """
-        获取风速
-        :param update_wind_speed:回调函数，界面更新风速
-        :return: 无
-        """
-        wind_speed = self.dataCollectorModel.wind_speed()
-        self.write_wind_speed(wind_speed)
-        update_wind_speed(wind_speed)
-
-    def get_port_list(self, update_port):
-        """
-        获取下拉框数据
-        :param callback:回调函数，界面更新下拉数据
-        :return: 无
-        """
-        port_name_list = util.get_port_list()
-
-        #
-        # 和上次比没有变化，就不更新界面了
-        #
-        if self.last_port_list != port_name_list:
-            self.last_port_list = port_name_list
-            update_port(self.last_port_list)  # 回调主线程函数，更新界面
-
-    def get_table_model(self, data: {}):
         n_machine = len(data)  # 机器数量
         error_number = ""  # 有问题机器编号
         table_model = QStandardItemModel()
 
+
+        yellow = QColor(255, 255, 0)
+        orange = QColor(255, 97, 0)
         #
         # 填充 table_model
         #
@@ -136,9 +43,9 @@ class Controller:
             error_code_item.setEditable(False)
             break_code = data[machine_number][0]
             if 0 < break_code <= 10:
-                error_code_item.setBackground(QBrush(QColor(255, 255, 0)))
+                error_code_item.setBackground(QBrush(yellow))
             elif break_code == 255:
-                error_code_item.setBackground(QBrush(QColor(255, 97, 0)))
+                error_code_item.setBackground(QBrush(orange))
             t0 = QStandardItem("%d号跟踪器故障代码" % (machine_number))
             t0.setEditable(False)
 
@@ -169,39 +76,6 @@ class Controller:
             table_model.setItem(i + 3, j + 1, item3)
 
         return table_model, error_number
-
-    def get_table_data(self, update_table, update_member, append_info):
-        """
-        获取表格数据
-        {'1': ('故障代码', '控制代码', '锁状态', '实时角度'), ...}
-        :param update_table:回调函数，更新表格
-        :return:无
-        """
-        data = self.dataCollectorModel.get_table_data()  # 获取表格原始数据
-
-        #
-        # 如果没获取到，就不更新
-        #
-        if data == {} or data is None:
-            append_info("更新表格失败(串口返回数据有误)！")
-            return
-
-        #
-        # 更新界面
-        #
-        table_model, error_number = self.get_table_model(data)
-        update_table(table_model)  # 更新表格
-        update_member(len(data))
-
-        #
-        # 如果存在机器有异常，就播放报警声，并写入日志
-        #
-        if error_number != "":
-            playsound('./other/bee.mp3')  # 播放警报声
-            self.write_error(error_number)  # 写在文件里
-            append_info("有异常机器编号：" + error_number)  # 输出到窗口
-        else:
-            append_info("数据更新完成，无异常")
 
     def read_config(self):
         """
