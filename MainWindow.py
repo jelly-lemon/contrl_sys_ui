@@ -357,6 +357,8 @@ class MainWindow(QObject):
         :return: 无
         """
         self.ui.label_wind_speed.setText(wind_speed + " m/s")
+        collector_addr = self.ui.edit_addr.text()  # 数采地址
+        self.helper.write_wind_speed(float(wind_speed), collector_addr)
 
     @Slot(str)
     def update_table(self, table_data: str):
@@ -369,6 +371,8 @@ class MainWindow(QObject):
         if error_number != "":
             self.append_info("有异常机器编号：" + error_number)
             self.play_error_sound()
+            collector_addr = self.ui.edit_addr.text()  # 数采地址
+            self.helper.write_error(error_number, collector_addr)
 
         self.ui.tableView.setModel(table_model)
 

@@ -99,64 +99,95 @@ class Helper:
         :param address: 数采地址
         :return: 是否写入成功
         """
-        file_path = "./other/config.txt"
-        if file_path != "":
-            file = open(file_path, mode="w+", encoding="utf-8")
-            if file.write(baudrate + " " + address):
-                file.close()
-                return True
+        file_dir = "./other"
+        file_name = "config.txt"
+        file_path = file_dir + "/" + file_name
+
+        if os.path.exists(file_dir) is False:
+            os.makedirs(file_dir)
+
+        file = open(file_path, mode="w+", encoding="utf-8")
+        if file.write(baudrate + " " + address):
+            file.close()
+            return True
 
         return False
 
-    def write_wind_speed(self, wind_speed: float):
-        file_path = self.check_files("wind_speed")  # 检查文件是否存在
-        self.write_csv(file_path, str(wind_speed))  # 写入到 csv 文件
+    def write_wind_speed(self, wind_speed: float, collector_addr):
+        """
+        写入风速到 CSV 文件
+        :param wind_speed:
+        :return:
+        """
+        file_dir = "./wind_speed"
+        file_name = util.get_time()[0:10] + "-" + collector_addr + "-wind_speed.csv"
+        file_path = file_dir + "/" + file_name
 
-    def write_csv(self, file_path: str, text: str):
-        # 追加数据到末尾
-        file = open(file_path, mode="a", encoding="utf-8")
+        if os.path.exists(file_dir) is False:
+            os.makedirs(file_dir)
+
+        file = open(file_path, "a+", newline="")
         csv_write = csv.writer(file)
-        data_row = [util.get_time(), str(text)]
+        data_row = [util.get_time(), str(wind_speed)]
         csv_write.writerow(data_row)
         file.close()
 
-    def write_error(self, error_info: str):
+    # def write_csv(self, file_path: str, text: str):
+    #     # 追加数据到末尾
+    #     file = open(file_path, mode="a", encoding="utf-8", newline="")
+    #     csv_write = csv.writer(file)
+    #     data_row = [util.get_time(), str(text)]
+    #     csv_write.writerow(data_row)
+    #     file.close()
+
+    def write_error(self, error_info: str, collector_addr: str):
         """
         保存出错日志到文件
+        日期-数采地址
         :param error_info:错误信息
         :return:无
         """
-        file_path = self.check_files("error")  # 检查文件是否存在
-        self.write_csv(file_path, error_info)
+        file_dir = "./error_log"
+        file_name = util.get_time()[0:10] + "-" + collector_addr + ".csv"
+        file_path = file_dir + "/" + file_name
 
-    def check_files(self, file_name: str) -> str:
-        """
-        检查文件是否存在，不存在就新建
-        :return:文件所在路径
-        """
-        if file_name == "wind_speed":
-            file_dir = "./wind_speed"
-            file_path = file_dir + "/" + util.get_time()[0:10] + "-wind_speed.csv"
-            csv_head = ["time", "wind_speed"]
-        elif file_name == "error":
-            file_dir = "./error_log"
-            file_path = file_dir + "/" + util.get_time()[0:10] + "-error.csv"
-            csv_head = ["time", "error"]
-        else:
-            return ""
-
-        #
-        # 不存在则新建
-        #
         if os.path.exists(file_dir) is False:
             os.makedirs(file_dir)
-        if os.path.exists(file_path) is False:
-            file = open(file_path, mode="a", encoding="utf-8")
-            csv_writer = csv.writer(file)
-            csv_writer.writerow(csv_head)
-            file.close()
 
-        return file_path
+        file = open(file_path, "a+", newline="")
+        csv_write = csv.writer(file)
+        data_row = [util.get_time(), error_info]
+        csv_write.writerow(data_row)
+        file.close()
+
+    # def check_files(self, file_name: str) -> str:
+    #     """
+    #     检查文件是否存在，不存在就新建
+    #     :return:文件所在路径
+    #     """
+    #     if file_name == "wind_speed":
+    #         file_dir = "./wind_speed"
+    #         file_path = file_dir + "/" + util.get_time()[0:10] + "-wind_speed.csv"
+    #         csv_head = ["time", "wind_speed"]
+    #     elif file_name == "error":
+    #         file_dir = "./error_log"
+    #         file_path = file_dir + "/" + util.get_time()[0:10] + "-error.csv"
+    #         csv_head = ["time", "error"]
+    #     else:
+    #         return ""
+    #
+    #     #
+    #     # 不存在则新建
+    #     #
+    #     if os.path.exists(file_dir) is False:
+    #         os.makedirs(file_dir)
+    #     if os.path.exists(file_path) is False:
+    #         file = open(file_path, mode="a", encoding="utf-8")
+    #         csv_writer = csv.writer(file)
+    #         csv_writer.writerow(csv_head)
+    #         file.close()
+    #
+    #     return file_path
 
     def get_row_col(self, machine_number):
         """
