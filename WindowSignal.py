@@ -10,6 +10,7 @@ class WindowSignal(QObject):
     table = Signal(str)
     info = Signal(str, str)
     scanning_port = Signal(str)
+    stop_polling = Signal()
 
 
 message = []

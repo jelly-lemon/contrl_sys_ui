@@ -1,0 +1,5 @@
+playsound==1.2.2
+WMI==1.5.1
+pyDes==2.0.1
+pyserial==3.4
+PySide2==5.15.0

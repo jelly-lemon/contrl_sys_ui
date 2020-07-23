@@ -1,6 +1,7 @@
 import time
 
 from PySide2.QtCore import QThread
+from serial import SerialException
 
 from Model import Model
 from WindowSignal import WindowSignal, message
@@ -20,6 +21,7 @@ class SerialWorker(QThread):
         self.signal.wind_speed.connect(parent.update_wind_speed)
         self.signal.table.connect(parent.update_table)
         self.signal.info.connect(parent.append_info)
+        self.signal.stop_polling.connect(parent.stop_polling)
 
     def run(self):
         while True:
@@ -27,17 +29,21 @@ class SerialWorker(QThread):
                 msg = message.pop(0)
                 cmd = msg['cmd']
                 if self.work:
-                    if cmd == "member":
-                        self.get_member()
-                    elif cmd == "wind_speed":
-                        self.get_wind_speed()
-                    elif cmd == "table":
-                        self.get_table()
-                    elif cmd == "one_key":
-                        self.one_key(msg["option"])
-                    elif cmd == "send_control_code":
-                        self.send_control_code(msg['machine_number'], msg['code'])
-
+                    try:
+                        if cmd == "member":
+                            self.get_member()
+                        elif cmd == "wind_speed":
+                            self.get_wind_speed()
+                        elif cmd == "table":
+                            self.get_table()
+                        elif cmd == "one_key":
+                            self.one_key(msg["option"])
+                        elif cmd == "send_control_code":
+                            self.send_control_code(msg['machine_number'], msg['code'])
+                    except SerialException:
+                        self.emit_info("端口被拔出！", "red")
+                        self.work = False
+                        self.signal.stop_polling.emit()
 
                 if cmd == "update_serial":
                     self.update_serial(msg['com_port'], msg['baud_rate'], msg['collector_addr'])
@@ -51,22 +57,23 @@ class SerialWorker(QThread):
     def update_serial(self, com_port, baud_rate, collector_addr):
         if self.model.update_serial(com_port, baud_rate, collector_addr) is False:
             self.emit_info("无法与串口建立连接，请检查端口号、波特率、数采地址是否正确，数采是否接电", "red")
+            self.signal.stop_polling.emit()
             self.work = False
 
         else:
             self.emit_info("与串口 %s 建立通信" % com_port, 'green')
             self.work = True
 
-    def update_serial_again(self, com_port, baud_rate, collector_addr):
-        """
-        再次尝试更新串口，不能用递归，不然可能会无限递归下去
-        :param com_port:
-        :param baud_rate:
-        :param collector_addr:
-        :return:
-        """
-        message.append({'cmd': 'update_serial', 'com_port': com_port, 'collector_addr': collector_addr,
-                        'baud_rate': baud_rate})
+    # def update_serial_again(self, com_port, baud_rate, collector_addr):
+    #     """
+    #     再次尝试更新串口，不能用递归，不然可能会无限递归下去
+    #     :param com_port:
+    #     :param baud_rate:
+    #     :param collector_addr:
+    #     :return:
+    #     """
+    #     message.append({'cmd': 'update_serial', 'com_port': com_port, 'collector_addr': collector_addr,
+    #                     'baud_rate': baud_rate})
 
     #
     # 以下函数有读 or 写操作

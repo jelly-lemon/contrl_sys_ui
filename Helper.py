@@ -119,7 +119,7 @@ class Helper:
         :param wind_speed:
         :return:
         """
-        file_dir = "./wind_speed"
+        file_dir = "./log/wind_speed"
         file_name = util.get_time()[0:10] + "-" + collector_addr + "-wind_speed.csv"
         file_path = file_dir + "/" + file_name
 
@@ -147,8 +147,8 @@ class Helper:
         :param error_info:错误信息
         :return:无
         """
-        file_dir = "./error_log"
-        file_name = util.get_time()[0:10] + "-" + collector_addr + ".csv"
+        file_dir = "./log/error_log"
+        file_name = util.get_time()[0:10] + "-" + collector_addr + "-error.csv"
         file_path = file_dir + "/" + file_name
 
         if os.path.exists(file_dir) is False:

@@ -186,6 +186,11 @@ class MainWindow(QObject):
             self.ui.btn_submit.setEnabled(True)  # 可以轮询
         else:
             self.append_info('未检测到任何串口设备，请检查连接是否正常', 'red')
+            #
+            # 加个 if 是为了判断是不是正在轮询中，
+            # 有可能是正在轮询，突然没有一个串口设备了
+            #
+
             self.ui.btn_submit.setEnabled(False)  # 禁止轮询
 
     @Slot(str, str)
@@ -308,6 +313,7 @@ class MainWindow(QObject):
 
         self.next_polling()  # 准备下一次轮询
 
+    @Slot()
     def stop_polling(self):
         """
         立即停止轮询
