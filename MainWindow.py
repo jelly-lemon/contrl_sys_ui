@@ -1,3 +1,5 @@
+import os
+import re
 from functools import partial
 from threading import Timer
 
@@ -76,10 +78,19 @@ class MainWindow(QObject):
         self.ui.lock.triggered.connect(partial(self.one_key, self.ui.lock.text()))
         self.ui.unlock1.triggered.connect(partial(self.one_key, self.ui.unlock1.text()))
         self.ui.wind_bread.triggered.connect(partial(self.one_key, self.ui.wind_bread.text()))
+        self.ui.planish.triggered.connect(partial(self.one_key, self.ui.planish.text()))
         self.ui.snow_removal.triggered.connect(partial(self.one_key, self.ui.snow_removal.text()))
         self.ui.clean_board.triggered.connect(partial(self.one_key, self.ui.clean_board.text()))
         self.ui.sub_angle.triggered.connect(partial(self.one_key, self.ui.sub_angle.text()))
         self.ui.add_angle.triggered.connect(partial(self.one_key, self.ui.add_angle.text()))
+        self.ui.advance.triggered.connect(self.show_advance_dialog)
+
+        #
+        # 日志
+        #
+        self.ui.wind_log.triggered.connect(partial(self.show_window, "wind"))
+        self.ui.error_log.triggered.connect(partial(self.show_window, "error"))
+
         self.ui.about.triggered.connect(self.show_about)
 
     def init_interval_combobox(self):
@@ -136,6 +147,24 @@ class MainWindow(QObject):
         self.ui.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 设置每列宽度：根据表头调整表格宽度
         self.ui.tableView.resizeColumnsToContents()  # 根据内容调整列宽
         self.ui.tableView.clicked.connect(self.handle_table_click)  # 鼠标左键点击事件
+
+    def show_window(self, name: str):
+        """
+        显示 Windows 资源管理器
+        :param url: 路径
+        :return: 无
+        """
+        path = None
+        if name == "wind":
+            path = os.getcwd() + r"\log\wind_speed"
+        elif name == "error":
+            path = os.getcwd() + r"\log\error_log"
+
+        if os.path.exists(path):
+            os.system("explorer.exe %s" % path)
+        else:
+            dail = InfoDialog("提示", "目前还没有日志！")
+            dail.exec_()
 
     def show_about(self):
         """
@@ -396,20 +425,61 @@ class MainWindow(QObject):
         """
         input_dial = ModifyDialog("发送控制代码", "%d 号控制器：" % machine_number)
         if input_dial.exec_():
-            code = int(input_dial.textValue())
-            if 1 <= code <= 99:
-                #
-                # 发送控制代码
-                #
-                self.send_control_code(machine_number, code)
+            try:
+                value = input_dial.textValue()
 
-            else:
+                #
+                # 检查输入
+                #
+                obj = re.match(r"^[0-9]{1,2}$", "12")
+                if obj is None:
+                    raise ValueError
+                else:
+                    code = int(value)
+                    if 1 <= code <= 99:
+                        code = int(input_dial.textValue())
+                        self.send_control_code(machine_number, code)
+                    else:
+                        raise ValueError
+            except ValueError:
                 #
                 # 提示输入有误
                 #
                 info = "输入的控制代码有误！控制代码只能是：1~99"
                 dial = InfoDialog("提示", info)
                 dial.exec_()  # 进入事件循环
+
+    def show_advance_dialog(self):
+        """
+        显示高级对话框，留着预防以后加什么新命令，可以通过这个对话框进行发送
+        :return:
+        """
+        input_dial = ModifyDialog("发送控制代码", "对所有控制器发送：" )
+        if input_dial.exec_():
+            try:
+                value = input_dial.textValue()
+                #
+                # 判断输入字符的长度，大于 2 就不是 1<= x <= 99
+                #
+                obj = re.match(r"^[0-9]{1,2}$", "12")
+                if obj is None:
+                    raise ValueError
+                else:
+                    code = int(value)
+                    if 1 <= code <= 99:
+                        code = int(input_dial.textValue())
+                        self.one_key(code)
+                    else:
+                        raise ValueError
+
+            except ValueError:
+                #
+                # 提示输入有误
+                #
+                info = "输入的控制代码有误！控制代码只能是 1~99！"
+                dial = InfoDialog("提示", info)
+                dial.exec_()  # 进入事件循环
+
 
     def send_control_code(self, machine_number: int, code: int) -> None:
         """

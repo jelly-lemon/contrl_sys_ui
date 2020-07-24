@@ -1,5 +1,4 @@
 import os
-
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
 
 from Model import Model
@@ -55,6 +54,7 @@ class Helper:
             t1 = QStandardItem("%d号跟踪器控制代码" % (machine_number))
             t1.setEditable(False)
             item1 = QStandardItem(str(data[machine_number][1]))
+            item1.setEditable(False)
 
             table_model.setItem(i + 1, j, t1)
             table_model.setItem(i + 1, j + 1, item1)
@@ -213,3 +213,5 @@ class Helper:
         machine_number += int(j / 2) * n_col
 
         return machine_number
+
+

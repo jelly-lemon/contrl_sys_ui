@@ -99,6 +99,8 @@ class Model():
             code = 10
         elif cmd == "一键防风":
             code = 6
+        elif cmd == "一键打平":
+            code = 3
         elif cmd == "一键除雪":
             code = 7
         elif cmd == "一键清洗":
@@ -107,6 +109,8 @@ class Model():
             code = 11
         elif cmd == "增加防风角度":
             code = 12
+        else:
+            code = int(cmd)
 
         instruction = "{:04x}".format(code).upper()
 

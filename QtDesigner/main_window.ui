@@ -146,7 +146,7 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="placeholderText" stdset="0">
+        <property name="placeholderText">
          <string/>
         </property>
        </widget>
@@ -276,6 +276,8 @@
     <addaction name="separator"/>
     <addaction name="wind_bread"/>
     <addaction name="separator"/>
+    <addaction name="planish"/>
+    <addaction name="separator"/>
     <addaction name="snow_removal"/>
     <addaction name="separator"/>
     <addaction name="clean_board"/>
@@ -283,6 +285,8 @@
     <addaction name="sub_angle"/>
     <addaction name="separator"/>
     <addaction name="add_angle"/>
+    <addaction name="separator"/>
+    <addaction name="advance"/>
    </widget>
    <widget class="QMenu" name="menu_help">
     <property name="title">
@@ -290,7 +294,16 @@
     </property>
     <addaction name="about"/>
    </widget>
+   <widget class="QMenu" name="menu_log">
+    <property name="title">
+     <string>日志</string>
+    </property>
+    <addaction name="wind_log"/>
+    <addaction name="separator"/>
+    <addaction name="error_log"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="menu_log"/>
    <addaction name="menu_help"/>
   </widget>
   <action name="restart">
@@ -336,6 +349,29 @@
   <action name="add_angle">
    <property name="text">
     <string>增加防风角度</string>
+   </property>
+  </action>
+  <action name="planish">
+   <property name="text">
+    <string>一键打平</string>
+   </property>
+   <property name="toolTip">
+    <string>一键打平</string>
+   </property>
+  </action>
+  <action name="advance">
+   <property name="text">
+    <string>高级</string>
+   </property>
+  </action>
+  <action name="wind_log">
+   <property name="text">
+    <string>风速</string>
+   </property>
+  </action>
+  <action name="error_log">
+   <property name="text">
+    <string>异常机器</string>
    </property>
   </action>
  </widget>
