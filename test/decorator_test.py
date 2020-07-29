@@ -1,15 +1,17 @@
 
 
 
-def Slot(func, x:int = 5, y: str = "hello"):
-    print("x=%d" % x)
-    print("y=%s" % y)
-    return "hello"
+def my_decorator(func):
+    def wrapper():
+        print("Something is happening before the function is called.")
+        func()
+        print("Something is happening after the function is called.")
 
-@Slot
-def show_name(name: str):
-    print(name)
+    return wrapper
 
+@my_decorator
+def say_whee():
+    print("whee!")
 
 if __name__ == '__main__':
-    print(show_name())
+    say_whee()

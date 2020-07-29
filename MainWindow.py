@@ -34,6 +34,7 @@ class MainWindow(QObject):
         self.isPolling = False  # 是否在轮询中
         self.helper = Helper()  # 控制器
         self.polling_timer = None  # 轮询定时器，设成成员变量是为了能够取消定时器
+        self.play_sound = True  # 默认允许播放蜂鸣声
 
         #
         # 初始化界面
@@ -91,7 +92,16 @@ class MainWindow(QObject):
         self.ui.wind_log.triggered.connect(partial(self.show_window, "wind"))
         self.ui.error_log.triggered.connect(partial(self.show_window, "error"))
 
+        #
+        # 帮助
+        #
         self.ui.about.triggered.connect(self.show_about)
+        self.ui.open_book.triggered.connect(partial(self.show_window, "book"))
+
+        #
+        # 蜂鸣报警声
+        #
+        self.ui.close_beep.triggered.connect(self.set_play_sound)
 
     def init_interval_combobox(self):
         """
@@ -159,6 +169,8 @@ class MainWindow(QObject):
             path = os.getcwd() + r"\log\wind_speed"
         elif name == "error":
             path = os.getcwd() + r"\log\error_log"
+        elif name == "book":
+            path = os.getcwd() + r"\other\光伏集群现场监控使用说明书.pdf"
 
         if os.path.exists(path):
             os.system("explorer.exe %s" % path)
@@ -171,8 +183,22 @@ class MainWindow(QObject):
         显示关于信息
         :return: 无
         """
-        dial = InfoDialog("关于", "四川近日点新能源科技有限公司\n联系电话：028-xxxxxxx")
+        dial = InfoDialog("关于", "四川近日点新能源科技有限公司\n联系电话：15108303256")
         dial.exec_()  # 进入事件循环，不关闭不会退出循环
+
+    def set_play_sound(self):
+        """
+        设置蜂鸣声
+        :return:
+        """
+        if self.play_sound is False:
+            self.play_sound = True
+            self.append_info("已打开蜂鸣报警声")
+            self.ui.close_beep.setText("关闭蜂鸣报警声")
+        else:
+            self.play_sound = False
+            self.append_info("已关闭蜂鸣报警声")
+            self.ui.close_beep.setText("打开蜂鸣报警声")
 
     def get_serial_info(self):
         com_port = self.ui.box_com_port.currentText()  # 端口号
@@ -180,10 +206,10 @@ class MainWindow(QObject):
         baud_rate = self.ui.edit_baudrate.text()  # 波特率
         return com_port, collector_addr, baud_rate
 
-    def one_key(self, option):
+    def one_key(self, option: str):
         """
         一键命令
-        :param cmd:命令
+        :param option:命令
         :return:无
         """
         # self.update_serial()
@@ -416,7 +442,8 @@ class MainWindow(QObject):
         播放警报
         :return:
         """
-        playsound.playsound("./other/bee.mp3")
+        if self.play_sound:
+            playsound.playsound("./other/bee.mp3")
 
     def show_modify_dialog(self, machine_number: int):
         """

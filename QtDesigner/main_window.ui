@@ -293,6 +293,8 @@
      <string>帮助</string>
     </property>
     <addaction name="about"/>
+    <addaction name="separator"/>
+    <addaction name="open_book"/>
    </widget>
    <widget class="QMenu" name="menu_log">
     <property name="title">
@@ -302,8 +304,15 @@
     <addaction name="separator"/>
     <addaction name="error_log"/>
    </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>报警声</string>
+    </property>
+    <addaction name="close_beep"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menu_log"/>
+   <addaction name="menu_2"/>
    <addaction name="menu_help"/>
   </widget>
   <action name="restart">
@@ -372,6 +381,16 @@
   <action name="error_log">
    <property name="text">
     <string>异常机器</string>
+   </property>
+  </action>
+  <action name="close_beep">
+   <property name="text">
+    <string>关闭蜂蜜报警声</string>
+   </property>
+  </action>
+  <action name="open_book">
+   <property name="text">
+    <string>打开软件使用说明书</string>
    </property>
   </action>
  </widget>

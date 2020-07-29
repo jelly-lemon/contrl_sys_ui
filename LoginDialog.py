@@ -43,7 +43,7 @@ class LoginDialog(QDialog):
 
         self.ok_btn = QPushButton(text="立即激活")
         self.ok_btn.clicked.connect(self.activate)
-        phone_label = QLabel("请拨打电话 135xxxxxx 获取产品密钥")
+        phone_label = QLabel("请拨打电话 15108303256 获取产品密钥")
         h_box3 = QHBoxLayout()
         h_box3.addStretch()
         h_box3.addWidget(phone_label)
@@ -87,6 +87,9 @@ class LoginDialog(QDialog):
         """
         cpu = self.cpu_input.text()
         key = self.key_input.text()
+        if key == "":
+            self.info_label.setText("请输入产品密钥！")
+
         if key != "":
             if util.des_descrypt(key) == cpu:
                 self.write_key(key)
