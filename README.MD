@@ -63,6 +63,6 @@ pyinstaller MainWindow.py -p=C:\Users\Administrator\AppData\Local\Programs\Pytho
 ges\shiboken2 -F  --hidden-import=typing --hidden-import=PySide2.QtXml --i=./other/app.ico --noconsole
 
 # 重要软件包版本
-wmi     1.5.1 （获取 CPU 序列号）
+wmi     1.5.1 （获取 CPU 序列号）   
 pyDes   2.0.1 （加密解密）    
 
